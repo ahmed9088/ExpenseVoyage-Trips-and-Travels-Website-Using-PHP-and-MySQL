@@ -1,0 +1,22 @@
+Project Details
+Database name: “trip_travel”,
+host: “Local host” 
+
+Php my Admin: http://localhost/phpmyadmin/index.php?route=/database/structure&db=trip_travel
+
+Login details:
+Login Email: ubaidsoomro505@gmail.com
+Password: 123
+
+Login url:
+http://localhost/travel/login/account.php
+
+Admin Login details:
+Login Username: Ubaid Soomro
+Password: 123
+
+Admin:
+http://localhost/travel/admin/index.php
+
+Home Page url:
+http://localhost/travel/index.php
