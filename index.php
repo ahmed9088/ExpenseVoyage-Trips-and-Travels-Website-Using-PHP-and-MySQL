@@ -5,25 +5,29 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Check if the user is logged in
+// Check if user is logged in
 if (!isset($_SESSION['email'])) {
-    // Store the current page in a session variable to redirect after login
-    $_SESSION['redirect_after_login'] = 'index.php'; // Redirect to this page after login
-    header("Location: login/account.php"); // Redirect to login page
-    exit(); // Stop further execution until the user logs in
+    $_SESSION['redirect_after_login'] = 'index.php';
+    header("Location: login/account.php");
+    exit();
 }
 
+// Handle review submission
 if (isset($_POST['sendreview'])) {
     if (isset($_SESSION['email'])) {
-        $useremail = $_POST['useremail'];
-        $usermessage = $_POST['usermessage'];
+        $useremail = mysqli_real_escape_string($con, $_POST['useremail']);
+        $usermessage = mysqli_real_escape_string($con, $_POST['usermessage']);
         $userid = $_SESSION['userid'];
-
-        // Fetch the user's name from the user table
-        $userQuery = mysqli_query($con, "SELECT name FROM user WHERE id = '$userid'");
-        $userRow = mysqli_fetch_assoc($userQuery);
-        $username = $userRow['name']; // Get the user's name
-
+        
+        // Fetch user's name using prepared statement
+        $stmt = $con->prepare("SELECT name FROM user WHERE id = ?");
+        $stmt->bind_param("i", $userid);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $userRow = $result->fetch_assoc();
+        $username = $userRow['name'];
+        $stmt->close();
+        
         // Handle file upload
         if (isset($_FILES['profile']) && $_FILES['profile']['error'] == UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES['profile']['tmp_name'];
@@ -32,912 +36,1789 @@ if (isset($_POST['sendreview'])) {
             $fileType = $_FILES['profile']['type'];
             $fileNameCmps = explode(".", $fileName);
             $fileExtension = strtolower(end($fileNameCmps));
-
-            // Specify allowed file types
+            
             $allowedfileExtensions = ['jpg', 'gif', 'png', 'jpeg', 'pdf'];
-            if (in_array($fileExtension, $allowedfileExtensions)) {
-                // Set the new file name and destination
+            $maxFileSize = 5 * 1024 * 1024; // 5MB
+            
+            if (in_array($fileExtension, $allowedfileExtensions) && $fileSize <= $maxFileSize) {
                 $newFileName = uniqid() . '.' . $fileExtension;
-                $uploadFileDir = 'img/reviewerimages/'; // Ensure this directory exists and is writable
+                $uploadFileDir = 'img/reviewerimages/';
+                
+                // Create directory if it doesn't exist
+                if (!file_exists($uploadFileDir)) {
+                    mkdir($uploadFileDir, 0755, true);
+                }
+                
                 $dest_path = $uploadFileDir . $newFileName;
-
-                // Move the file to the specified directory
+                
                 if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                    // Insert into database including the username
-                    $sql = "INSERT INTO review (userid, email, image, usermessage, date_time, username) 
-                            VALUES ('$userid', '$useremail', '$newFileName', '$usermessage', NOW(), '$username')";
-                    $result = mysqli_query($con, $sql);
-
-                    if ($result) {
-                        // Set a session variable to indicate successful submission
-                        $_SESSION['review_submitted'] = true;
-                        // Redirect to the same page to prevent resubmission
-                        header("Location: index.php");
-                        exit();
-                    }
+                    // Insert using prepared statement
+                    $stmt = $con->prepare("INSERT INTO review (userid, email, image, usermessage, date_time, username) 
+                                         VALUES (?, ?, ?, ?, NOW(), ?)");
+                    $stmt->bind_param("issss", $userid, $useremail, $newFileName, $usermessage, $username);
+                    $stmt->execute();
+                    $stmt->close();
+                    
+                    $_SESSION['review_submitted'] = true;
+                    header("Location: index.php");
+                    exit();
                 }
             }
         }
     }
 }
 
-// Check for review submission success message
+// Check for review submission success
+$reviewSuccess = false;
 if (isset($_SESSION['review_submitted'])) {
-    unset($_SESSION['review_submitted']); // Clear the session variable
+    $reviewSuccess = true;
+    unset($_SESSION['review_submitted']);
 }
 
-// Fetch trip data from the database
-$query = "SELECT * FROM trips"; // Adjust the query based on your table structure
+// Fetch trip data
+$query = "SELECT * FROM trips";
 $result = mysqli_query($con, $query);
 
-// Check for query execution errors
 if (!$result) {
-    die("Query failed: " . mysqli_error($con)); // This will output the error
+    die("Query failed: " . mysqli_error($con));
 }
 
-// The rest of your code...
-?>
+// Fetch agent data
+$agentQuery = "SELECT * FROM agent";
+$agentResult = mysqli_query($con, $agentQuery);
 
+if (!$agentResult) {
+    die("Query failed: " . mysqli_error($con));
+}
+
+// Fetch review data
+$reviewQuery = "SELECT * FROM review";
+$reviewResult = mysqli_query($con, $reviewQuery);
+?>
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
-    <title>Traveler.com</title>
+    <title>ExpenseVoyage - Premium Travel Experience</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="Free HTML Templates" name="keywords">
-    <meta content="Free HTML Templates" name="description">
-
+    <meta content="Premium Travel Experience" name="keywords">
+    <meta content="Discover the world with ExpenseVoyage - Premium travel experiences tailored to your desires" name="description">
+    
     <!-- Favicon -->
     <link href="img/favicon.ico" rel="icon">
     <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
     <link rel="manifest" href="img/site.webmanifest">
-    <link rel="mask-icon" href="img/safari-pinned-tab.svg" color="#5bbad5">
-    <meta name="msapplication-TileColor" content="#da532c">
-    <meta name="theme-color" content="#ffffff">
-    <!-- Favicon -->
-    <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
-    <link rel="manifest" href="img/site.webmanifest">
-    <link rel="mask-icon" href="img/safari-pinned-tab.svg" color="#5bbad5">
-    <meta name="msapplication-TileColor" content="#da532c">
-    <meta name="theme-color" content="#ffffff">
-    <!-- Favicon -->
-
+    
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <!-- Libraries Stylesheet -->
     <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
     <link href="lib/tempusdominus/css/tempusdominus-bootstrap-4.min.css" rel="stylesheet" />
-
-    <!-- Bootstrap CSS (optional, for styling) -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-
-    <!-- Customized Bootstrap Stylesheet -->
-    <link href="css/style.css" rel="stylesheet">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    
+    <!-- Particles.js for animated background -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    
+    <!-- Customized Stylesheet -->
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --accent: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #06ffa5;
+            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: var(--dark);
+            background-color: #f5f7ff;
+            overflow-x: hidden;
+        }
+        
+        /* Animated Background */
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            background: linear-gradient(135deg, #1a1c20, #2d3436);
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+        
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .section-title {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 2.5rem;
+    color: white;
+}           position: relative;
+            display: inline-block;
+            margin-bottom: 2.5rem;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -10px;
+            width: 50px;
+            height: 4px;
+            background: var(--gradient);
+            border-radius: 2px;
+        }
+        
+        .text-primary {
+            color: var(--primary) !important;
+        }
+        
+        .text-accent {
+            color: var(--accent) !important;
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 12px 30px;
+            font-weight: 600;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(67, 97, 238, 0.4);
+            color: white;
+        }
+        
+        .btn-outline-primary {
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        /* Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            padding: 15px 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+        
+        .navbar-brand span {
+            color: var(--dark);
+        }
+        
+        .navbar-nav .nav-link {
+            font-weight: 500;
+            margin: 0 10px;
+            color: var(--dark);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active {
+            color: var(--primary);
+        }
+        
+        .navbar-nav .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-nav .nav-link:hover::after, .navbar-nav .nav-link.active::after {
+            width: 100%;
+        }
+        
+        .navbar-toggler {
+            border: none;
+            padding: 0;
+        }
+        
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+        
+        .navbar-toggler span {
+            display: block;
+            width: 25px;
+            height: 3px;
+            margin: 5px 0;
+            background: var(--primary);
+            transition: all 0.3s ease;
+        }
+        
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            min-height: 600px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            color: white;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .hero-content p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .hero-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(67, 97, 238, 0.8), rgba(63, 55, 201, 0.8)), 
+                        url('img/carousel-1.jpg');
+            background-size: cover;
+            background-position: center;
+            z-index: 1;
+            animation: backgroundPan 20s infinite alternate;
+        }
+        
+        @keyframes backgroundPan {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+        
+        /* Booking Section */
+        .booking {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: -80px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .booking .form-control {
+            border: none;
+            border-radius: 50px;
+            padding: 15px 25px;
+            background: #f8f9fa;
+            font-weight: 500;
+            height: auto;
+        }
+        
+        .booking .form-control:focus {
+            box-shadow: none;
+            background: white;
+            border: 2px solid var(--primary);
+        }
+        
+        .booking .btn {
+            height: auto;
+            padding: 15px 30px;
+            border-radius: 50px;
+        }
+        
+        /* Section Styling */
+        section {
+            padding: 100px 0;
+            position: relative;
+        }
+        
+        .section-bg {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            padding: 50px;
+            margin-bottom: 30px;
+        }
+        
+        /* About Section */
+        .about-img {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .about-img img {
+            transition: all 0.5s ease;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .about-img:hover img {
+            transform: scale(1.05);
+        }
+        
+        .about-text {
+            padding: 40px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.05);
+            height: 100%;
+        }
+        
+        /* Feature Section */
+        .feature-item {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .feature-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: white;
+            font-size: 1.8rem;
+        }
+        
+        /* Destination Section */
+        .destination-item {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            height: 350px;
+            margin-bottom: 30px;
+        }
+        
+        .destination-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.5s ease;
+        }
+        
+        .destination-item:hover img {
+            transform: scale(1.1);
+        }
+        
+        .destination-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 30px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .destination-overlay:hover {
+            text-decoration: none;
+            color: white;
+        }
+        
+        .destination-overlay h5 {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        /* Service Section */
+        .service-item {
+            background: white;
+            border-radius: 15px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .service-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .service-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: white;
+            font-size: 1.8rem;
+        }
+        
+        /* Trip Package Section */
+        .package-item {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .package-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .package-img {
+            height: 220px;
+            overflow: hidden;
+        }
+        
+        .package-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.5s ease;
+        }
+        
+        .package-item:hover .package-img img {
+            transform: scale(1.1);
+        }
+        
+        .package-content {
+            padding: 25px;
+        }
+        
+        .package-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .package-meta small {
+            display: flex;
+            align-items: center;
+            color: #6c757d;
+        }
+        
+        .package-meta i {
+            margin-right: 5px;
+            color: var(--primary);
+        }
+        
+        .package-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: block;
+            color: var(--dark);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .package-title:hover {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        .package-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+        
+        .package-price {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.3rem;
+        }
+        
+        /* Review Section */
+        .review-form {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .review-header {
+            background: var(--gradient);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .review-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        
+        .review-body {
+            padding: 40px;
+        }
+        
+        .review-body .form-control {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .review-body .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+        }
+        
+        /* Success Message */
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        /* Team Section */
+        .team-item {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .team-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .team-img {
+            height: 250px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .team-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.5s ease;
+        }
+        
+        .team-item:hover .team-img img {
+            transform: scale(1.1);
+        }
+        
+        .team-social {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .team-item:hover .team-social {
+            opacity: 1;
+        }
+        
+        .team-social a {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 5px;
+            color: var(--primary);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .team-social a:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-5px);
+        }
+        
+        .team-info {
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .team-info h5 {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .team-info p {
+            color: #6c757d;
+            margin: 0;
+        }
+        
+        /* Testimonial Section */
+        .testimonial-item {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .testimonial-item::before {
+            content: '\f10d';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 2rem;
+            color: rgba(67, 97, 238, 0.1);
+        }
+        
+        .testimonial-text {
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+        
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+        }
+        
+        .testimonial-author img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+        
+        .testimonial-author h5 {
+            margin: 0;
+            font-weight: 700;
+        }
+        
+        .testimonial-author p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        /* Blog Section */
+        .blog-item {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .blog-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .blog-img {
+            position: relative;
+            height: 220px;
+            overflow: hidden;
+        }
+        
+        .blog-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.5s ease;
+        }
+        
+        .blog-item:hover .blog-img img {
+            transform: scale(1.1);
+        }
+        
+        .blog-date {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--gradient);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .blog-date h6 {
+            margin: 0;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+        
+        .blog-date small {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        
+        .blog-content {
+            padding: 25px;
+        }
+        
+        .blog-meta {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        
+        .blog-meta a {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-decoration: none;
+            margin-right: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .blog-meta a:hover {
+            color: var(--primary);
+        }
+        
+        .blog-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: block;
+            color: var(--dark);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .blog-title:hover {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        /* Footer */
+        footer {
+            background: linear-gradient(135deg, #1a1c20, #2d3436);
+            color: rgba(255, 255, 255, 0.7);
+            padding: 80px 0 0;
+            position: relative;
+        }
+        
+        footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: var(--gradient);
+        }
+        
+        .footer-logo {
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: white;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        
+        .footer-logo span {
+            color: var(--accent);
+        }
+        
+        .footer-about {
+            margin-bottom: 30px;
+        }
+        
+        .footer-title {
+            color: white;
+            font-weight: 700;
+            margin-bottom: 20px;
+            position: relative;
+            padding-bottom: 10px;
+        }
+        
+        .footer-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 2px;
+            background: var(--accent);
+        }
+        
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            display: block;
+            margin-bottom: 10px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .footer-links a:hover {
+            color: var(--accent);
+            padding-left: 5px;
+        }
+        
+        .footer-contact p {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .footer-contact i {
+            margin-right: 10px;
+            color: var(--accent);
+        }
+        
+        .footer-newsletter .form-control {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50px;
+            padding: 15px 25px;
+            color: white;
+            margin-bottom: 15px;
+        }
+        
+        .footer-newsletter .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .footer-newsletter .form-control:focus {
+            box-shadow: none;
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .footer-newsletter .btn {
+            width: 100%;
+            border-radius: 50px;
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px 0;
+            margin-top: 50px;
+            text-align: center;
+        }
+        
+        .footer-social a {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 5px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .footer-social a:hover {
+            background: var(--accent);
+            transform: translateY(-5px);
+        }
+        
+        /* Back to Top */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 99;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .back-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .back-to-top:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            color: white;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Responsive */
+        @media (max-width: 991px) {
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+            
+            section {
+                padding: 70px 0;
+            }
+        }
+        
+        @media (max-width: 767px) {
+            .hero-content h1 {
+                font-size: 2rem;
+            }
+            
+            .booking {
+                margin-top: -50px;
+                padding: 20px;
+            }
+            
+            .about-text {
+                padding: 30px 20px;
+                margin-top: 30px;
+            }
+            
+            .section-bg {
+                padding: 30px 20px;
+            }
+            
+            .review-body {
+                padding: 30px 20px;
+            }
+        }
+    </style>
 </head>
-
 <body>
-<style>
-
-
-body {
-  --sb-track-color: #232E33;
-  --sb-thumb-color: #7AB730;
-  --sb-size: 14px;
-  
-}
-
-body::-webkit-scrollbar {
-  width: 12px;
-  
-}
-
-body::-webkit-scrollbar-track {
-  background: var(--sb-track-color);
-  border-radius: 1px;
-}
-
-body::-webkit-scrollbar-thumb {
-  background: var(--sb-thumb-color);
-  border-radius: 3px;
-  
-}
-
-@supports not selector(::-webkit-scrollbar) {
-  body {
-    scrollbar-color: var(--sb-thumb-color)
-                     var(--sb-track-color);
-  }
-}
-</style>
+    <!-- Animated Background -->
+    <div id="particles-js"></div>
+    
     <!-- Topbar Start -->
-    <div class="container-fluid bg-light pt-3 d-none d-lg-block">
+    <div class="container-fluid bg-light py-3 d-none d-lg-block">
         <div class="container">
             <div class="row">
-                <div class="col-lg-6 text-center text-lg-left mb-2 mb-lg-0">
+                <div class="col-md-6 text-center text-md-left mb-2 mb-md-0">
                     <div class="d-inline-flex align-items-center">
-                        <p><i class="fa fa-envelope mr-2"></i>memon1ahmed@gmail.com</p>
-                        <p class="text-body px-3">|</p>
-                        <p><i class="fa fa-phone-alt mr-2"></i>+92 3073 762 276</p>
+                        <p class="mb-0"><i class="fa fa-envelope mr-2 text-primary"></i>memon1ahmed@gmail.com</p>
+                        <p class="mb-0 px-3">|</p>
+                        <p class="mb-0"><i class="fa fa-phone-alt mr-2 text-primary"></i>+92 3073 762 276</p>
                     </div>
                 </div>
-                <div class="col-lg-6 text-center text-lg-right">
+                <div class="col-md-6 text-center text-md-right">
                     <div class="d-inline-flex align-items-center">
-                        <a class="text-primary px-3" href="">
-                            <i class="fab fa-facebook-f"></i>
-                        </a>
-                        <a class="text-primary px-3" href="">
-                            <i class="fab fa-twitter"></i>
-                        </a>
-                        <a class="text-primary px-3" href="">
-                            <i class="fab fa-linkedin-in"></i>
-                        </a>
-                        <a class="text-primary px-3" href="">
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                        <a class="text-primary pl-3" href="">
-                            <i class="fab fa-youtube"></i>
-                        </a>
+                        <a class="text-primary px-3" href=""><i class="fab fa-facebook-f"></i></a>
+                        <a class="text-primary px-3" href=""><i class="fab fa-twitter"></i></a>
+                        <a class="text-primary px-3" href=""><i class="fab fa-linkedin-in"></i></a>
+                        <a class="text-primary px-3" href=""><i class="fab fa-instagram"></i></a>
+                        <a class="text-primary pl-3" href=""><i class="fab fa-youtube"></i></a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <!-- Topbar End -->
-
-    <style>
-    /* Ensures the navbar spans full screen width and is responsive */
-    .nav-bar {
-        position: relative;
-        width: 100%; /* Ensures full width */
-        transition: all 0.3s ease;
-        z-index: 9;
-    }
-
-    /* Sticky Class (Applied on Scroll) */
-    .sticky-nav {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%; /* Ensures sticky navbar is full width */
-        z-index: 999;
-        background-color: #ffffff;
-        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-        animation: fadeInDown 0.5s ease;
-    }
-
-    /* Keyframe for smooth fade-in effect */
-    @keyframes fadeInDown {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    /* Ensures the container inside the navbar is full-width */
-    .container-fluid {
-        max-width: 100%;
-        padding: 0; /* Removes extra padding to span the screen */
-    }
-
-    /* Adjusting padding for better alignment */
-    .container-lg {
-        padding: 0 15px; /* Adjust this padding for alignment */
-    }
-</style>
-
-<script>
-    // Wait for the DOM to be fully loaded
-    document.addEventListener("DOMContentLoaded", function () {
-        const navbar = document.querySelector('.nav-bar');
-
-        // Function to toggle the sticky class based on scroll
-        window.addEventListener('scroll', function () {
-            if (window.scrollY > 100) { // When user scrolls 100px down
-                navbar.classList.add('sticky-nav');
-            } else {
-                navbar.classList.remove('sticky-nav');
-            }
-        });
-    });
-</script>
-
-<!-- Navbar Start -->
-<div class="container-fluid nav-bar p-0">
-    <div class="container-lg p-0 px-lg-3">
-        <nav class="navbar navbar-expand-lg bg-light navbar-light shadow-lg py-3 py-lg-0 pl-3 pl-lg-5">
-            <a href="" class="navbar-brand">
-                <h1 class="m-0 text-primary" style="font-size:25px;">
-                    <span style="color:black;">Expense</span>Voyage
-                </h1>
+    
+    <!-- Navbar Start -->
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
+        <div class="container">
+            <a href="index.php" class="navbar-brand animate__animated animate__fadeInLeft">
+                <span class="text-primary">Expense</span><span>Voyage</span>
             </a>
-            <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbarCollapse">
-                <span class="navbar-toggler-icon"></span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                <span></span>
+                <span></span>
+                <span></span>
             </button>
-            <div class="collapse navbar-collapse justify-content-between px-3" id="navbarCollapse">
-                <div class="navbar-nav ml-auto py-0">
-                    <a href="index.php" class="nav-item nav-link active">Home</a>
-                    <a href="about.php" class="nav-item nav-link">About</a>
-                    <a href="service.php" class="nav-item nav-link">Services</a>
-                    <a href="package.php" class="nav-item nav-link">Tour Packages</a>
-                    <div class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Pages</a>
-                        <div class="dropdown-menu border-0 rounded-0 m-0">
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <div class="navbar-nav ms-auto py-0">
+                    <a href="index.php" class="nav-item nav-link active animate__animated animate__fadeInDown">Home</a>
+                    <a href="about.php" class="nav-item nav-link animate__animated animate__fadeInDown">About</a>
+                    <a href="service.php" class="nav-item nav-link animate__animated animate__fadeInDown">Services</a>
+                    <a href="package.php" class="nav-item nav-link animate__animated animate__fadeInDown">Tour Packages</a>
+                    <div class="nav-item dropdown animate__animated animate__fadeInDown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Pages</a>
+                        <div class="dropdown-menu m-0">
                             <a href="blog.php" class="dropdown-item">Blog</a>
                             <a href="destination.php" class="dropdown-item">Destination</a>
                             <a href="guide.php" class="dropdown-item">Travel Guides</a>
                         </div>
                     </div>
-                    <a href="contact.php" class="nav-item nav-link">Contact</a>
-
-                    <div class="login-register d-flex align-items-center">
+                    <a href="contact.php" class="nav-item nav-link animate__animated animate__fadeInDown">Contact</a>
+                    <div class="nav-item dropdown animate__animated animate__fadeInRight">
                         <?php
                         if (isset($_SESSION['email'])) {
                             $name = $_SESSION['name'] ?? 'User';
-
-                            // Display the dropdown with the user's name
-                            echo '<div class="nav-item dropdown">
-            <a href="#" class="nav-link dropdown-toggle active p-0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span>' . htmlspecialchars($name) . '</span>
-            </a>
-            <div class="dropdown-menu border-0 rounded-0 m-0">
-                <a href="user-profile.php" class="dropdown-item">MY Account</a>
-                <a href="admin/index.php" class="dropdown-item">Only Admin</a>
-                <a href="booking.php" class="dropdown-item">Booking</a>
-                <a href="logout.php" class="dropdown-item">Logout</a>
-            </div>
-        </div>';
+                            echo '<a href="#" class="nav-link dropdown-toggle active" data-bs-toggle="dropdown"><span>' . htmlspecialchars($name) . '</span></a>
+                            <div class="dropdown-menu dropdown-menu-end m-0">
+                                <a href="user-profile.php" class="dropdown-item">My Account</a>
+                                <a href="admin/index.php" class="dropdown-item">Admin Panel</a>
+                                <a href="booking.php" class="dropdown-item">Booking</a>
+                                <a href="logout.php" class="dropdown-item">Logout</a>
+                            </div>';
                         } else {
-                            echo '<div class="nav-item dropdown">
-            <a href="#" class="nav-link dropdown-toggle active p-0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span>Login/Register</span>
-            </a>
-            <div class="dropdown-menu border-0 rounded-0 m-0">
-                <a href="login/account.php" class="dropdown-item active">Login/Register</a>
-            </div>
-        </div>';
+                            echo '<a href="#" class="nav-link dropdown-toggle active" data-bs-toggle="dropdown"><span>Login/Register</span></a>
+                            <div class="dropdown-menu dropdown-menu-end m-0">
+                                <a href="login/account.php" class="dropdown-item">Login/Register</a>
+                            </div>';
                         }
                         ?>
                     </div>
                 </div>
             </div>
-        </nav>
-    </div>
-</div>
-<!-- Navbar End -->
-
-
-    <!-- Carousel Start -->
-    <div class="container-fluid p-0">
-        <div id="header-carousel" class="carousel slide" data-ride="carousel">
-            <div class="carousel-inner">
-                <div class="carousel-item active">
-                    <img class="w-100" src="img/carousel-1.jpg" alt="Image">
-                    <div class="carousel-caption d-flex flex-column align-items-center justify-content-center">
-                        <div class="p-3" style="max-width: 900px;">
-                            <h4 class="text-white text-uppercase mb-md-3">Tours & Travel</h4>
-                            <h1 class="display-3 text-white mb-md-4">Let's Discover The World Together</h1>
-                            <a href="" class="btn btn-primary py-md-3 px-md-5 mt-2">Book Now</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="carousel-item">
-                    <img class="w-100" src="img/carousel-2.jpg" alt="Image">
-                    <div class="carousel-caption d-flex flex-column align-items-center justify-content-center">
-                        <div class="p-3" style="max-width: 900px;">
-                            <h4 class="text-white text-uppercase mb-md-3">Tours & Travel</h4>
-                            <h1 class="display-3 text-white mb-md-4">Discover Amazing Places With Us</h1>
-                            <a href="" class="btn btn-primary py-md-3 px-md-5 mt-2">Book Now</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <a class="carousel-control-prev" href="#header-carousel" data-slide="prev">
-                <div class="btn btn-dark" style="width: 45px; height: 45px;">
-                    <span class="carousel-control-prev-icon mb-n2"></span>
-                </div>
-            </a>
-            <a class="carousel-control-next" href="#header-carousel" data-slide="next">
-                <div class="btn btn-dark" style="width: 45px; height: 45px;">
-                    <span class="carousel-control-next-icon mb-n2"></span>
-                </div>
-            </a>
+        </div>
+    </nav>
+    <!-- Navbar End -->
+    
+    <!-- Hero Section Start -->
+    <div class="hero">
+        <div class="hero-background"></div>
+        <div class="hero-content animate__animated animate__fadeIn">
+            <h1 class="animate__animated animate__fadeInDown">Discover The World With Us</h1>
+            <p class="animate__animated animate__fadeInUp">Experience unforgettable journeys to the most breathtaking destinations on Earth</p>
+            <a href="package.php" class="btn btn-primary animate__animated animate__zoomIn">Explore Tours</a>
         </div>
     </div>
-    <!-- Carousel End -->
-
-
-
+    <!-- Hero Section End -->
+    
     <!-- Booking Start -->
-    <div class="container-fluid booking mt-5 pb-5">
-        <div class="container pb-5">
-            <div class="bg-light shadow" style="padding: 30px;">
-                <form action="package.php" method="get">
-                    <div class="row align-items-center" style="min-height: 60px;">
-                        <div class="col-md-10">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="mb-3 mb-md-0">
-                                        <input type="text" class="form-control p-4" placeholder="Enter Destination"
-                                            name="destination">
-                                    </div>
-                                </div>
-
-
-
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-primary btn-block" type="submit"
-                                style="height: 47px; margin-top: -2px;">Submit</button>
+    <div class="container booking animate__animated animate__fadeInUp">
+        <form action="package.php" method="get">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-10">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <input type="text" class="form-control" placeholder="Enter Destination" name="destination">
                         </div>
                     </div>
-                </form>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" type="submit">Search</button>
+                </div>
             </div>
-        </div>
+        </form>
     </div>
     <!-- Booking End -->
-    <!-- Booking End -->
-
-
+    
     <!-- About Start -->
-    <div class="container-fluid py-5">
-        <div class="container pt-5">
-            <div class="row">
-                <div class="col-lg-6" style="min-height: 500px;">
-                    <div class="position-relative h-100">
-                        <img class="position-absolute w-100 h-100" src="img/about.jpg" style="object-fit: cover;">
+    <section class="about">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 animate__animated animate__fadeInLeft">
+                    <div class="about-img">
+                        <img src="img/about.jpg" class="img-fluid" alt="About Us">
                     </div>
                 </div>
-                <div class="col-lg-6 pt-5 pb-lg-5">
-                    <div class="about-text bg-white p-4 p-lg-5 my-lg-5">
-                        <h6 class="text-primary text-uppercase" style="letter-spacing: 5px;">About Us</h6>
-                        <h1 class="mb-3">We Provide Best Tour Packages In Your Budget</h1>
-                        <p>we believe that every journey should be unforgettable. As passionate travel enthusiasts, our
-                            goal is to help you plan your dream trips with ease and confidence. Whether you're seeking
-                            adventure, relaxation, or cultural exploration, we curate personalized itineraries tailored
-                            to your preferences and budget.</p>
-                        <div class="row mb-4">
+                <div class="col-lg-6 animate__animated animate__fadeInRight">
+                    <div class="about-text">
+                        <h6 class="text-primary text-uppercase">About Us</h6>
+                        <h1 class="section-title">We Provide Premium Travel Experiences</h1>
+                        <p>At ExpenseVoyage, we believe that every journey should be unforgettable. As passionate travel enthusiasts, our goal is to help you plan your dream trips with ease and confidence.</p>
+                        <p>Whether you're seeking adventure, relaxation, or cultural exploration, we curate personalized itineraries tailored to your preferences and budget.</p>
+                        <div class="row g-3 pt-3">
                             <div class="col-6">
-                                <img class="img-fluid" src="img/about-1.jpg" alt="">
+                                <img src="img/about-1.jpg" class="img-fluid rounded" alt="Travel">
                             </div>
                             <div class="col-6">
-                                <img class="img-fluid" src="img/about-2.jpg" alt="">
+                                <img src="img/about-2.jpg" class="img-fluid rounded" alt="Adventure">
                             </div>
                         </div>
-                        <a href="" class="btn btn-primary mt-1">Book Now</a>
+                        <a href="about.php" class="btn btn-primary mt-4">Learn More</a>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
     <!-- About End -->
-
-
-    <!-- Feature Start -->
-    <div class="container-fluid pb-5">
-        <div class="container pb-5">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="d-flex mb-4 mb-lg-0">
-                        <div class="d-flex flex-shrink-0 align-items-center justify-content-center bg-primary mr-3"
-                            style="height: 100px; width: 100px;">
-                            <i class="fa fa-2x fa-money-check-alt text-white"></i>
+    
+    <!-- Features Start -->
+    <section class="features">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h6 class="text-primary text-uppercase">Why Choose Us</h6>
+                <h1 class="section-title">Our Special Features</h1>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-money-bill-wave"></i>
                         </div>
-                        <div class="d-flex flex-column">
-                            <h5 class="">Competitive Pricing</h5>
-                            <p class="m-0">We believe that amazing travel experiences shouldn’t come with a hefty price
-                                tag.</p>
-                        </div>
+                        <h5>Competitive Pricing</h5>
+                        <p>We believe that amazing travel experiences shouldn't come with a hefty price tag. Our packages offer exceptional value.</p>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="d-flex mb-4 mb-lg-0">
-                        <div class="d-flex flex-shrink-0 align-items-center justify-content-center bg-primary mr-3"
-                            style="height: 100px; width: 100px;">
-                            <i class="fa fa-2x fa-award text-white"></i>
+                <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-award"></i>
                         </div>
-                        <div class="d-flex flex-column">
-                            <h5 class="">Best Services</h5>
-                            <p class="m-0">We pride ourselves on delivering the best services to make your travel. </p>
-                        </div>
+                        <h5>Best Services</h5>
+                        <p>We pride ourselves on delivering the best services to make your travel experience seamless and enjoyable from start to finish.</p>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="d-flex mb-4 mb-lg-0">
-                        <div class="d-flex flex-shrink-0 align-items-center justify-content-center bg-primary mr-3"
-                            style="height: 100px; width: 100px;">
-                            <i class="fa fa-2x fa-globe text-white"></i>
+                <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-globe-americas"></i>
                         </div>
-                        <div class="d-flex flex-column">
-                            <h5 class="">Worldwide Coverage</h5>
-                            <p class="m-0">We offer worldwide coverage, bringing the world to your fingertips.</p>
-                        </div>
+                        <h5>Worldwide Coverage</h5>
+                        <p>We offer worldwide coverage, bringing the world to your fingertips with destinations across all continents.</p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- Feature End -->
-
-
+    </section>
+    <!-- Features End -->
+    
     <!-- Destination Start -->
-    <div class="container-fluid py-5">
-        <div class="container pt-5 pb-3">
-            <div class="text-center mb-3 pb-3">
-                <h6 class="text-primary text-uppercase" style="letter-spacing: 5px;">Destination</h6>
-                <h1>Explore Top Destination</h1>
+    <section class="destinations">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h6 class="text-primary text-uppercase">Popular Destinations</h6>
+                <h1 class="section-title">Explore Top Destinations</h1>
             </div>
-            <div class="row">
-
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="destination-item position-relative overflow-hidden mb-2">
-                        <img class="img-fluid" src="img/destination-2.jpg" alt="">
-                        <a class="destination-overlay text-white text-decoration-none" href="destination.php">
-                            <h5 class="text-white">United Kingdom</h5>
-                            <span>100 Cities</span>
+            <div class="row g-4">
+                <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+                    <div class="destination-item">
+                        <img src="img/destination-2.jpg" class="img-fluid" alt="United Kingdom">
+                        <a href="destination.php" class="destination-overlay">
+                            <h5>United Kingdom</h5>
+                            <span>100+ Cities</span>
                         </a>
                     </div>
                 </div>
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="destination-item position-relative overflow-hidden mb-2">
-                        <img class="img-fluid" src="img/destination-3.jpg" alt="">
-                        <a class="destination-overlay text-white text-decoration-none" href="destination.php">
-                            <h5 class="text-white">Australia</h5>
-                            <span>100 Cities</span>
+                <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+                    <div class="destination-item">
+                        <img src="img/destination-3.jpg" class="img-fluid" alt="Australia">
+                        <a href="destination.php" class="destination-overlay">
+                            <h5>Australia</h5>
+                            <span>80+ Cities</span>
                         </a>
                     </div>
                 </div>
-
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="destination-item position-relative overflow-hidden mb-2">
-                        <img class="img-fluid" src="img/destination-5.jpg" alt="">
-                        <a class="destination-overlay text-white text-decoration-none" href="destination.php">
-                            <h5 class="text-white">South Africa</h5>
-                            <span>100 Cities</span>
+                <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
+                    <div class="destination-item">
+                        <img src="img/destination-5.jpg" class="img-fluid" alt="South Africa">
+                        <a href="destination.php" class="destination-overlay">
+                            <h5>South Africa</h5>
+                            <span>60+ Cities</span>
                         </a>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-    <!-- Destination Start -->
-
-
-    <!-- Service Start -->
-    <div class="container-fluid py-5">
-        <div class="container pt-5 pb-3">
-            <div class="text-center mb-3 pb-3">
-                <h6 class="text-primary text-uppercase" style="letter-spacing: 5px;">Services</h6>
-                <h1>Tours & Travel Services</h1>
-            </div>
-            <div class="row">
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-item bg-white text-center mb-2 py-5 px-4">
-                        <i class="fa fa-2x fa-route mx-auto mb-4"></i>
-                        <h5 class="mb-2">Travel Guide</h5>
-                        <p class="m-0">Justo sit justo eos amet tempor amet clita amet ipsum eos elitr. Amet lorem est
-                            amet labore</p>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-item bg-white text-center mb-2 py-5 px-4">
-                        <i class="fa fa-2x fa-ticket-alt mx-auto mb-4"></i>
-                        <h5 class="mb-2">Ticket Booking</h5>
-                        <p class="m-0">Justo sit justo eos amet tempor amet clita amet ipsum eos elitr. Amet lorem est
-                            amet labore</p>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-item bg-white text-center mb-2 py-5 px-4">
-                        <i class="fa fa-2x fa-hotel mx-auto mb-4"></i>
-                        <h5 class="mb-2">Hotel Booking</h5>
-                        <p class="m-0">Justo sit justo eos amet tempor amet clita amet ipsum eos elitr. Amet lorem est
-                            amet labore</p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- Service End -->
-
-
-<!-- Trips Start -->
-<div class="container-fluid py-5">
-    <div class="container pt-5 pb-3">
-        <div class="text-center mb-3 pb-3">
-            <h6 class="text-primary text-uppercase" style="letter-spacing: 5px;">Trips</h6>
-            <h1>Perfect Tour Packages</h1>
+    </section>
+    <!-- Destination End -->
+    
+    <!-- Services Start -->
+    <section class="services">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h6 class="text-primary text-uppercase">Our Services</h6>
+                <h1 class="section-title">Premium Travel Services</h1>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+                    <div class="service-item">
+                        <div class="service-icon">
+                            <i class="fas fa-map-marked-alt"></i>
+                        </div>
+                        <h5>Travel Guide</h5>
+                        <p>Expert local guides who provide authentic insights and hidden gems at every destination.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+                    <div class="service-item">
+                        <div class="service-icon">
+                            <i class="fas fa-ticket-alt"></i>
+                        </div>
+                        <h5>Ticket Booking</h5>
+                        <p>Hassle-free booking for flights, trains, buses, and attractions with the best prices.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
+                    <div class="service-item">
+                        <div class="service-icon">
+                            <i class="fas fa-hotel"></i>
+                        </div>
+                        <h5>Hotel Booking</h5>
+                        <p>Curated selection of accommodations from luxury resorts to boutique hotels and unique stays.</p>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="row">
-            <?php while ($trip = mysqli_fetch_assoc($result)): ?>
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="package-item bg-white mb-2">
-                        <img class="img-fluid" src="<?php echo $trip['trip_image']; ?>" alt="">
-                        <div class="p-4">
-                            <div class="d-flex justify-content-between mb-3">
-                                <small class="m-0"><i class="fa fa-map-marker-alt text-primary mr-2"></i><?php echo $trip['destination']; ?></small>
-                                <small class="m-0"><i class="fa fa-calendar-alt text-primary mr-2"></i><?php echo $trip['duration_days']; ?> days</small>
-                                <small class="m-0"><i class="fa fa-user text-primary mr-2"></i><?php echo $trip['persons']; ?> Person</small>
+    </section>
+    <!-- Services End -->
+    
+    <!-- Trips Start -->
+    <section class="trips">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h6 class="text-primary text-uppercase">Featured Tours</h6>
+                <h1 class="section-title">Perfect Tour Packages</h1>
+            </div>
+            <div class="row g-4">
+                <?php while ($trip = mysqli_fetch_assoc($result)): ?>
+                    <div class="col-lg-4 col-md-6 animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+                        <div class="package-item">
+                            <div class="package-img">
+                                <img src="<?php echo htmlspecialchars($trip['trip_image']); ?>" class="img-fluid" alt="<?php echo htmlspecialchars($trip['trip_name']); ?>">
                             </div>
-                            <a class="h5 text-decoration-none" href="trip_details.php?id=<?php echo $trip['trip_id']; ?>"><?php echo $trip['trip_name']; ?></a>
-                            <div class="border-top mt-4 pt-4">
-                                <div class="d-flex justify-content-between">
-                                    <h6 class="m-0"><i class="fa fa-star text-primary mr-2"></i><?php echo $trip['stars']; ?> </h6>
-                                    <h5 class="m-0">$<?php echo $trip['budget']; ?></h5>
+                            <div class="package-content">
+                                <div class="package-meta">
+                                    <small><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($trip['destination']); ?></small>
+                                    <small><i class="fas fa-calendar-alt"></i> <?php echo htmlspecialchars($trip['duration_days']); ?> days</small>
+                                    <small><i class="fas fa-user"></i> <?php echo htmlspecialchars($trip['persons']); ?> Person</small>
+                                </div>
+                                <a href="trip_details.php?id=<?php echo htmlspecialchars($trip['trip_id']); ?>" class="package-title"><?php echo htmlspecialchars($trip['trip_name']); ?></a>
+                                <div class="package-footer">
+                                    <div>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star-half-alt text-warning"></i>
+                                        <span class="ms-1"><?php echo htmlspecialchars($trip['stars']); ?></span>
+                                    </div>
+                                    <div class="package-price">$<?php echo htmlspecialchars($trip['budget']); ?></div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            <?php endwhile; ?>
+                <?php endwhile; ?>
+            </div>
         </div>
-    </div>
-</div>
-<!-- Trips End -->
-    <!-- Registration Start -->
-    <div class="container-fluid bg-registration py-5" style="margin: 90px 0; background-attachment: fixed !important;">
-        <div class="container py-5">
-            <div class="row align-items-center justify-content-center">
-
-                <div class="col-lg-5">
-                    <div class="card border-0">
-                        <div class="card-header bg-primary text-center p-4">
-                            <h1 class="text-white m-0">User Review</h1>
+    </section>
+    <!-- Trips End -->
+    
+    <!-- Review Start -->
+    <section class="review">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-6 animate__animated animate__fadeInUp">
+                    <div class="review-form">
+                        <div class="review-header">
+                            <h1>Share Your Experience</h1>
                         </div>
-                        <div class="card-body rounded-bottom bg-white p-5">
+                        <div class="review-body">
+                            <?php if ($reviewSuccess): ?>
+                                <div class="success-message">
+                                    Thank you for your review! It has been submitted successfully.
+                                </div>
+                            <?php endif; ?>
+                            
                             <form method="POST" action="index.php" enctype="multipart/form-data" onsubmit="return validateMessage()">
-                                <div class="form-group">
-                                    <input type="email" name="useremail" class="form-control p-4" placeholder="Your Email" required="required" />
+                                <div class="mb-3">
+                                    <input type="email" name="useremail" class="form-control" placeholder="Your Email" required>
                                 </div>
-                                <div class="form-group">
-                                    <input type="file" name="profile" class="form-control p-4" required="required" style="height:80px;" />
+                                <div class="mb-3">
+                                    <input type="file" name="profile" class="form-control" required>
                                 </div>
-                                <div class="form-group">
-                                    <textarea id="usermessage" name="usermessage" class="form-control pl-4 pt-2" rows="6" placeholder="Enter Review" required></textarea>
-                                    <small id="wordCount" class="form-text text-muted">You can enter up to 10 words.</small>
+                                <div class="mb-3">
+                                    <textarea id="usermessage" name="usermessage" class="form-control" rows="4" placeholder="Share your experience (max 10 words)" required></textarea>
+                                    <small id="wordCount" class="form-text text-muted">Words: 0/10</small>
                                 </div>
                                 <div>
-                                    <button class="btn btn-primary btn-block py-3" type="submit" name="sendreview">Send Review</button>
+                                    <button class="btn btn-primary w-100" type="submit" name="sendreview">Submit Review</button>
                                 </div>
                             </form>
-
                             <script>
                                 function validateMessage() {
                                     const messageInput = document.getElementById('usermessage');
                                     const message = messageInput.value.trim();
-                                    const wordCount = message.split(/\s+/).filter(word => word.length > 0).length; // Count words
-
-                                    // Check if the word count exceeds 10
+                                    const wordCount = message.split(/\s+/).filter(word => word.length > 0).length;
+                                    
                                     if (wordCount > 10) {
                                         alert('Please enter no more than 10 words.');
-                                        return false; // Prevent form submission
+                                        return false;
                                     }
-                                    return true; // Allow form submission
+                                    return true;
                                 }
-
-                                // Update word count dynamically and restrict input
+                                
                                 document.getElementById('usermessage').addEventListener('input', function() {
                                     const message = this.value.trim();
-                                    const wordCount = message.split(/\s+/).filter(word => word.length > 0).length; // Count words
+                                    const wordCount = message.split(/\s+/).filter(word => word.length > 0).length;
                                     document.getElementById('wordCount').textContent = `Words: ${wordCount}/10`;
-
-                                    // Restrict input to 10 words
+                                    
                                     if (wordCount > 10) {
-                                        const words = message.split(/\s+/).slice(0, 10).join(" "); // Keep only first 10 words
-                                        this.value = words; // Set the textarea value to the truncated message
+                                        const words = message.split(/\s+/).slice(0, 10).join(" ");
+                                        this.value = words;
                                     }
                                 });
                             </script>
-
-
-
-
-
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- Registration End -->
-
-<!-- Team Start -->
-<div class="container-fluid py-5">
-    <div class="container pt-5 pb-3">
-        <div class="text-center mb-3 pb-3">
-            <h6 class="text-primary text-uppercase" style="letter-spacing: 5px;">Guides</h6>
-            <h1>Our Travel Guides</h1>
-        </div>
-        <div class="row">
-            <?php
-            // Include your database connection file
-            include 'admin/config.php'; // Adjust the path as necessary
-            
-            // Fetch agent data from the database
-            $query = "SELECT * FROM agent"; // Ensure this is the correct table name
-            $result = mysqli_query($con, $query);
-
-            // Check for query execution errors
-            if (!$result) {
-                die("Query failed: " . mysqli_error($con)); // Output the error message
-            }
-
-            // Define the base path for images
-            $basePath = 'admin/upload/agents/';
-
-            // Loop through the result set and display each agent
-            while ($agent = mysqli_fetch_assoc($result)):
-                $imageFilename = htmlspecialchars($agent['a_image']); // Assuming this contains only the filename
-                $imagePath = $basePath . $imageFilename; // Concatenate the base path with the filename
-                $agentName = htmlspecialchars($agent['a_name']); // Prevent XSS
-                $agentProfession = htmlspecialchars($agent['a_profetion']); // Correct column name
-            ?>
-                <div class="col-lg-3 col-md-4 col-sm-6 pb-4">
-                    <div class="team-item bg-white mb-4 shadow-sm rounded">
-                        <div class="team-img position-relative overflow-hidden">
-                            <img class="img-fluid w-100 h-100" src="<?php echo $imagePath; ?>" alt="<?php echo $agentName; ?>" onerror="this.onerror=null; this.src='img/placeholder.jpg';" style="object-fit: cover;">
-                            <div class="team-social">
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-twitter"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-facebook-f"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-instagram"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-linkedin-in"></i></a>
+    </section>
+    <!-- Review End -->
+    
+    <!-- Team Start -->
+    <section class="team">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h6 class="text-primary text-uppercase">Travel Experts</h6>
+                <h1 class="section-title">Meet Our Guides</h1>
+            </div>
+            <div class="row g-4">
+                <?php
+                $basePath = 'admin/upload/agents/';
+                
+                while ($agent = mysqli_fetch_assoc($agentResult)):
+                    $imageFilename = htmlspecialchars($agent['a_image']);
+                    $imagePath = $basePath . $imageFilename;
+                    $agentName = htmlspecialchars($agent['a_name']);
+                    $agentProfession = htmlspecialchars($agent['a_profetion']);
+                ?>
+                    <div class="col-lg-3 col-md-6 animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+                        <div class="team-item">
+                            <div class="team-img">
+                                <img src="<?php echo $imagePath; ?>" class="img-fluid" alt="<?php echo $agentName; ?>" onerror="this.src='img/placeholder.jpg';">
+                                <div class="team-social">
+                                    <a href=""><i class="fab fa-twitter"></i></a>
+                                    <a href=""><i class="fab fa-facebook-f"></i></a>
+                                    <a href=""><i class="fab fa-instagram"></i></a>
+                                    <a href=""><i class="fab fa-linkedin-in"></i></a>
+                                </div>
+                            </div>
+                            <div class="team-info">
+                                <h5><?php echo $agentName; ?></h5>
+                                <p><?php echo $agentProfession; ?></p>
                             </div>
                         </div>
-                        <div class="text-center py-4">
-                            <h5 class="text-truncate mb-1"><?php echo $agentName; ?></h5>
-                            <p class="m-0 text-muted"><?php echo $agentProfession; ?></p>
-                        </div>
                     </div>
-                </div>
-            <?php endwhile; ?>
+                <?php endwhile; ?>
+            </div>
         </div>
-    </div>
-</div>
-<!-- Team End -->
-<style>
-    .team-item {
-    height: 400px; /* Set a fixed height for uniformity */
-}
-
-.team-img {
-    height: 250px; /* Fixed height for image section */
-}
-
-.team-social {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-</style>
-<!-- Team End -->
-
-
+    </section>
+    <!-- Team End -->
+    
     <!-- Testimonial Start -->
-    <div class="container-fluid py-5">
-        <div class="container py-5">
-            <div class="text-center mb-3 pb-3">
-                <h6 class="text-primary text-uppercase" style="letter-spacing: 5px;">Testimonial</h6>
-                <h1>What Say Our Clients</h1>
+    <section class="testimonial">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h6 class="text-primary text-uppercase">Testimonials</h6>
+                <h1 class="section-title">What Our Clients Say</h1>
             </div>
-
-            <?php
-            $sql = "SELECT * FROM review";
-            $result = mysqli_query($con, $sql);
-
-            // Check if there are results
-            if ($result && mysqli_num_rows($result) > 0) {
-                echo '<div class="owl-carousel testimonial-carousel">'; // Start carousel
-                while ($rows = mysqli_fetch_assoc($result)) {
-                    // Use the image from the 'review' table instead of fetching it from 'user'
-                    $reviewer_image = $rows['image']; // Assuming 'image' is the column in 'review' table
-                    $reviewer_name = $rows['username']; // Assuming 'name' is also in the 'review' table
-
-                    echo '<div class="text-center pb-4">
-                <img class="img-fluid mx-auto" src="img/reviewerimages/' . htmlspecialchars($reviewer_image) . '" style="width: 100px; height: 100px;">
-                <div class="testimonial-text bg-white p-4 mt-n5">
-                    <p class="mt-5">' . htmlspecialchars($rows['usermessage']) . '</p>
-                    <h5 class="text-truncate">' . htmlspecialchars($reviewer_name) . '</h5>
-                </div>
-            </div>';
+            <div class="row">
+                <?php
+                if ($reviewResult && mysqli_num_rows($reviewResult) > 0) {
+                    while ($rows = mysqli_fetch_assoc($reviewResult)) {
+                        $reviewer_image = htmlspecialchars($rows['image']);
+                        $reviewer_name = htmlspecialchars($rows['username']);
+                        echo '<div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+                            <div class="testimonial-item">
+                                <p class="testimonial-text">"' . htmlspecialchars($rows['usermessage']) . '"</p>
+                                <div class="testimonial-author">
+                                    <img src="img/reviewerimages/' . $reviewer_image . '" alt="' . $reviewer_name . '">
+                                    <div>
+                                        <h5>' . $reviewer_name . '</h5>
+                                        <p>Traveler</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>';
+                    }
+                } else {
+                    echo '<div class="col-12 text-center"><p>No reviews found.</p></div>';
                 }
-                echo '</div>'; // End carousel
-            } else {
-                echo '<p>No reviews found.</p>'; // Handle case when no reviews exist
-            }
-            ?>
-
-
-
+                ?>
+            </div>
         </div>
-    </div>
+    </section>
     <!-- Testimonial End -->
-
-
+    
     <!-- Blog Start -->
-    <div class="container-fluid py-5">
-        <div class="container pt-5 pb-3">
-            <div class="text-center mb-3 pb-3">
-                <h6 class="text-primary text-uppercase" style="letter-spacing: 5px;">Our Blog</h6>
-                <h1>Latest From Our Blog</h1>
+    <section class="blog">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h6 class="text-primary text-uppercase">Our Blog</h6>
+                <h1 class="section-title">Latest Travel Stories</h1>
             </div>
-            <div class="row pb-3">
-                <div class="col-lg-4 col-md-6 mb-4 pb-2">
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6 animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
                     <div class="blog-item">
-                        <div class="position-relative">
-                            <img class="img-fluid w-100" src="img/blog-1.jpg" alt="">
+                        <div class="blog-img">
+                            <img src="img/blog-1.jpg" class="img-fluid" alt="Blog Post">
                             <div class="blog-date">
-                                <h6 class="font-weight-bold mb-n1">01</h6>
-                                <small class="text-white text-uppercase">Jan</small>
+                                <h6>01</h6>
+                                <small>Jan</small>
                             </div>
                         </div>
-                        <div class="bg-white p-4">
-                            <div class="d-flex mb-2">
-                                <a class="text-primary text-uppercase text-decoration-none" href="">Admin</a>
-                                <span class="text-primary px-2">|</span>
-                                <a class="text-primary text-uppercase text-decoration-none" href="">Tours & Travel</a>
+                        <div class="blog-content">
+                            <div class="blog-meta">
+                                <a href="">Admin</a>
+                                <a href="">Tours & Travel</a>
                             </div>
-                            <a class="h5 m-0 text-decoration-none" href="blog.php">Dolor justo sea kasd lorem clita
-                                justo diam amet</a>
+                            <a href="blog.php" class="blog-title">Discover Hidden Gems in Europe</a>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-4 col-md-6 mb-4 pb-2">
+                <div class="col-lg-4 col-md-6 animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
                     <div class="blog-item">
-                        <div class="position-relative">
-                            <img class="img-fluid w-100" src="img/blog-2.jpg" alt="">
+                        <div class="blog-img">
+                            <img src="img/blog-2.jpg" class="img-fluid" alt="Blog Post">
                             <div class="blog-date">
-                                <h6 class="font-weight-bold mb-n1">01</h6>
-                                <small class="text-white text-uppercase">Jan</small>
+                                <h6>15</h6>
+                                <small>Jan</small>
                             </div>
                         </div>
-                        <div class="bg-white p-4">
-                            <div class="d-flex mb-2">
-                                <a class="text-primary text-uppercase text-decoration-none" href="">Admin</a>
-                                <span class="text-primary px-2">|</span>
-                                <a class="text-primary text-uppercase text-decoration-none" href="">Tours & Travel</a>
+                        <div class="blog-content">
+                            <div class="blog-meta">
+                                <a href="">Admin</a>
+                                <a href="">Adventure</a>
                             </div>
-                            <a class="h5 m-0 text-decoration-none" href="blog.php">Dolor justo sea kasd lorem clita
-                                justo diam amet</a>
+                            <a href="blog.php" class="blog-title">Ultimate Adventure Travel Guide</a>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-4 col-md-6 mb-4 pb-2">
+                <div class="col-lg-4 col-md-6 animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
                     <div class="blog-item">
-                        <div class="position-relative">
-                            <img class="img-fluid w-100" src="img/blog-3.jpg" alt="">
+                        <div class="blog-img">
+                            <img src="img/blog-3.jpg" class="img-fluid" alt="Blog Post">
                             <div class="blog-date">
-                                <h6 class="font-weight-bold mb-n1">01</h6>
-                                <small class="text-white text-uppercase">Jan</small>
+                                <h6>28</h6>
+                                <small>Jan</small>
                             </div>
                         </div>
-                        <div class="bg-white p-4">
-                            <div class="d-flex mb-2">
-                                <a class="text-primary text-uppercase text-decoration-none" href="">Admin</a>
-                                <span class="text-primary px-2">|</span>
-                                <a class="text-primary text-uppercase text-decoration-none" href="">Tours & Travel</a>
+                        <div class="blog-content">
+                            <div class="blog-meta">
+                                <a href="">Admin</a>
+                                <a href="#">Luxury Travel</a>
                             </div>
-                            <a class="h5 m-0 text-decoration-none" href="blog.php">Dolor justo sea kasd lorem clita
-                                justo diam amet</a>
+                            <a href="blog.php" class="blog-title">Luxury Resorts You Must Visit</a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
     <!-- Blog End -->
-
-
+    
     <!-- Footer Start -->
-    <div class="container-fluid bg-dark text-white-50 py-5 px-sm-3 px-lg-5">
-        <div class="row pt-5">
-            <div class="col-lg-3 col-md-6 mb-5">
-                <a href="" class="navbar-brand">
-                    <a href="" class="navbar-brand">
-                        <h1 class="text-primary" style="font-size:25px;"><span style="color:white;">Expense</span>Voyage
-                        </h1>
-                    </a>
-                </a>
-                <p>Sed ipsum clita tempor ipsum ipsum amet sit ipsum lorem amet labore rebum lorem ipsum dolor. No sed
-                    vero lorem dolor dolor</p>
-                <h6 class="text-white text-uppercase mt-4 mb-3" style="letter-spacing: 5px;">Follow Us</h6>
-                <div class="d-flex justify-content-start">
-                    <a class="btn btn-outline-primary btn-square mr-2" href="#"><i class="fab fa-twitter"></i></a>
-                    <a class="btn btn-outline-primary btn-square mr-2" href="#"><i class="fab fa-facebook-f"></i></a>
-                    <a class="btn btn-outline-primary btn-square mr-2" href="#"><i class="fab fa-linkedin-in"></i></a>
-                    <a class="btn btn-outline-primary btn-square" href="#"><i class="fab fa-instagram"></i></a>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-5">
-                <h5 class="text-white text-uppercase mb-4" style="letter-spacing: 5px;">Our Services</h5>
-                <div class="d-flex flex-column justify-content-start">
-                    <a class="text-white-50 mb-2" href="about.php"><i class="fa fa-angle-right mr-2"></i>About</a>
-                    <a class="text-white-50 mb-2" href="destination.php"><i
-                            class="fa fa-angle-right mr-2"></i>Destination</a>
-                    <a class="text-white-50 mb-2" href="service.php"><i class="fa fa-angle-right mr-2"></i>Services</a>
-                    <a class="text-white-50 mb-2" href="package.php"><i class="fa fa-angle-right mr-2"></i>Packages</a>
-                    <a class="text-white-50 mb-2" href="guide.php"><i class="fa fa-angle-right mr-2"></i>Guides</a>
-
-                    <a class="text-white-50" href="blog.php"><i class="fa fa-angle-right mr-2"></i>Blog</a>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-5">
-                <h5 class="text-white text-uppercase mb-4" style="letter-spacing: 5px;">Useful Links</h5>
-                <div class="d-flex flex-column justify-content-start">
-                    <!-- Social Media Links -->
-                    <a class="text-white-50 mb-2" href="#"><i class="fab fa-facebook-f mr-2"></i>Facebook</a>
-                    <a class="text-white-50 mb-2" href="#"><i class="fab fa-instagram mr-2"></i>Instagram</a>
-                    <a class="text-white-50 mb-2" href="#"><i class="fab fa-twitter mr-2"></i>Twitter</a>
-                    <a class="text-white-50 mb-2" href="#"><i class="fab fa-linkedin mr-2"></i>LinkedIn</a>
-                    <a class="text-white-50 mb-2" href="#"><i class="fab fa-skype mr-2"></i>Skype</a>
-                    <a class="text-white-50" href="mailto:your-email@example.com"><i
-                            class="fa fa-envelope mr-2"></i>Gmail</a>
-                </div>
-            </div>
-
-            <div class="col-lg-3 col-md-6 mb-5">
-                <h5 class="text-white text-uppercase mb-4" style="letter-spacing: 5px;">Contact Us</h5>
-                <p><i class="fa fa-map-marker-alt mr-2"></i>Aptech Def Hyderabad Sindh Pakistan</p>
-                <p><i class="fa fa-phone-alt mr-2"></i>+92 3188 893 8630</p>
-                <p><i class="fa fa-envelope mr-2"></i>ubaidsoomro505@gmail.com</p>
-                <h6 class="text-white text-uppercase mt-4 mb-3" style="letter-spacing: 5px;">Newsletter</h6>
-                <div class="w-100">
-                    <div class="input-group">
-                        <input type="text" class="form-control border-light" style="padding: 25px;"
-                            placeholder="Your Email">
-                        <div class="input-group-append">
-                            <button class="btn btn-primary px-3">Sign Up</button>
+    <footer>
+        <div class="container">
+            <div class="row g-5">
+                <div class="col-lg-3 col-md-6">
+                    <a href="index.php" class="footer-logo">Expense<span>Voyage</span></a>
+                    <div class="footer-about mt-4">
+                        <p>Discover the world with ExpenseVoyage - Premium travel experiences tailored to your desires.</p>
+                        <div class="footer-social mt-4">
+                            <a href=""><i class="fab fa-twitter"></i></a>
+                            <a href=""><i class="fab fa-facebook-f"></i></a>
+                            <a href=""><i class="fab fa-instagram"></i></a>
+                            <a href=""><i class="fab fa-linkedin-in"></i></a>
                         </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="footer-title">Our Services</h5>
+                    <div class="footer-links">
+                        <a href="about.php">About Us</a>
+                        <a href="destination.php">Destinations</a>
+                        <a href="service.php">Services</a>
+                        <a href="package.php">Packages</a>
+                        <a href="guide.php">Travel Guides</a>
+                        <a href="blog.php">Blog</a>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="footer-title">Quick Links</h5>
+                    <div class="footer-links">
+                        <a href="">Contact Us</a>
+                        <a href="">Terms & Conditions</a>
+                        <a href="">Privacy Policy</a>
+                        <a href="">FAQs</a>
+                        <a href="">Support</a>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="footer-title">Contact Us</h5>
+                    <div class="footer-contact">
+                        <p><i class="fas fa-map-marker-alt"></i> Aptech Def Hyderabad Sindh Pakistan</p>
+                        <p><i class="fas fa-phone-alt"></i> +92 3188 893 8630</p>
+                        <p><i class="fas fa-envelope"></i> ubaidsoomro505@gmail.com</p>
+                    </div>
+                    <h5 class="footer-title mt-4">Newsletter</h5>
+                    <div class="footer-newsletter">
+                        <form>
+                            <input type="text" class="form-control" placeholder="Your Email">
+                            <button class="btn btn-primary w-100" type="submit">Subscribe</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div class="row">
+                    <div class="col-md-6 text-md-start text-center">
+                        <p>&copy; <?php echo date('Y'); ?> ExpenseVoyage. All Rights Reserved.</p>
+                    </div>
+                    <div class="col-md-6 text-md-end text-center">
+                        <p>Designed with <i class="fas fa-heart text-danger"></i> by ExpenseVoyage Team</p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
+    </footer>
     <!-- Footer End -->
-
-
+    
     <!-- Back to Top -->
-    <a href="#" class="btn btn-lg btn-primary btn-lg-square back-to-top"><i class="fa fa-angle-double-up"></i></a>
-
-
+    <a href="#" class="back-to-top"><i class="fas fa-arrow-up"></i></a>
+    
     <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="lib/easing/easing.min.js"></script>
     <script src="lib/owlcarousel/owl.carousel.min.js"></script>
     <script src="lib/tempusdominus/js/moment.min.js"></script>
     <script src="lib/tempusdominus/js/moment-timezone.min.js"></script>
     <script src="lib/tempusdominus/js/tempusdominus-bootstrap-4.min.js"></script>
-
-    <!-- Contact Javascript File -->
-    <script src="mail/jqBootstrapValidation.min.js"></script>
-    <script src="mail/contact.js"></script>
-
+    
     <!-- Template Javascript -->
-    <script src="js/main.js"></script>
-    <!-- Optional Bootstrap JS and jQuery (for styling and functionality) -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-
+    <script>
+        // Initialize particles.js for animated background
+        particlesJS('particles-js', {
+            particles: {
+                number: {
+                    value: 80,
+                    density: {
+                        enable: true,
+                        value_area: 800
+                    }
+                },
+                color: {
+                    value: '#4cc9f0'
+                },
+                shape: {
+                    type: 'circle'
+                },
+                opacity: {
+                    value: 0.5,
+                    random: true
+                },
+                size: {
+                    value: 3,
+                    random: true
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#4361ee',
+                    opacity: 0.4,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 2,
+                    direction: 'none',
+                    random: true,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: {
+                        enable: true,
+                        mode: 'grab'
+                    },
+                    onclick: {
+                        enable: true,
+                        mode: 'push'
+                    },
+                    resize: true
+                },
+                modes: {
+                    grab: {
+                        distance: 140,
+                        line_linked: {
+                            opacity: 1
+                        }
+                    },
+                    push: {
+                        particles_nb: 4
+                    }
+                }
+            },
+            retina_detect: true
+        });
+        
+        // Back to top button
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 300) {
+                $('.back-to-top').addClass('show');
+            } else {
+                $('.back-to-top').removeClass('show');
+            }
+        });
+        
+        $('.back-to-top').click(function() {
+            $('html, body').animate({scrollTop: 0}, 800);
+            return false;
+        });
+        
+        // Animation on scroll
+        $(window).on('load', function() {
+            $('.animate__animated').css('opacity', '0');
+            
+            $(window).scroll(function() {
+                var windowBottom = $(this).scrollTop() + $(this).innerHeight();
+                
+                $('.animate__animated').each(function() {
+                    var objectBottom = $(this).offset().top + $(this).outerHeight() / 2;
+                    
+                    if (objectBottom < windowBottom) {
+                        $(this).animate({'opacity': '1'}, 500);
+                    }
+                });
+            }).scroll();
+        });
+        
+        // Testimonial carousel
+        $('.testimonial-carousel').owlCarousel({
+            autoplay: true,
+            smartSpeed: 1000,
+            margin: 30,
+            dots: false,
+            loop: true,
+            nav: true,
+            navText: [
+                '<i class="fas fa-chevron-left"></i>',
+                '<i class="fas fa-chevron-right"></i>'
+            ],
+            responsive: {
+                0: {
+                    items: 1
+                },
+                768: {
+                    items: 2
+                },
+                992: {
+                    items: 3
+                }
+            }
+        });
+    </script>
 </body>
-
 </html>

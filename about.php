@@ -1,14 +1,26 @@
 <?php
 session_start();
 include 'admin/config.php';
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // Handle review submission
 if (isset($_POST['sendreview'])) {
     if (isset($_SESSION['email'])) {
-        $useremail = $_POST['useremail'];
-        $usermessage = $_POST['usermessage'];
+        $useremail = mysqli_real_escape_string($con, $_POST['useremail']);
+        $usermessage = mysqli_real_escape_string($con, $_POST['usermessage']);
         $userid = $_SESSION['userid'];
-
+        
+        // Fetch user's name using prepared statement
+        $stmt = $con->prepare("SELECT name FROM user WHERE id = ?");
+        $stmt->bind_param("i", $userid);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $userRow = $result->fetch_assoc();
+        $username = $userRow['name'];
+        $stmt->close();
+        
         // Handle file upload
         if (isset($_FILES['profile']) && $_FILES['profile']['error'] == UPLOAD_ERR_OK) {
             $fileTmpPath = $_FILES['profile']['tmp_name'];
@@ -17,62 +29,72 @@ if (isset($_POST['sendreview'])) {
             $fileType = $_FILES['profile']['type'];
             $fileNameCmps = explode(".", $fileName);
             $fileExtension = strtolower(end($fileNameCmps));
-
-            // Specify allowed file types (you can modify this as needed)
+            
             $allowedfileExtensions = ['jpg', 'gif', 'png', 'jpeg', 'pdf'];
-            if (in_array($fileExtension, $allowedfileExtensions)) {
-                // Set the new file name and destination
+            $maxFileSize = 5 * 1024 * 1024; // 5MB
+            
+            if (in_array($fileExtension, $allowedfileExtensions) && $fileSize <= $maxFileSize) {
                 $newFileName = uniqid() . '.' . $fileExtension;
-                $uploadFileDir = './uploads/'; // Ensure this directory exists and is writable
-                $dest_path = $uploadFileDir . $newFileName;
-
-                // Move the file to the specified directory
-                if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                    // Insert into database
-                    $sql = "INSERT INTO review (userid, email, image, usermessage, date_time) VALUES ('$userid', '$useremail', '$newFileName', '$usermessage', NOW())";
-                    $result = mysqli_query($con, $sql);
-
-                    if ($result) {
-                        // Set a session variable to indicate successful submission
-                        $_SESSION['review_submitted'] = true;
-                        // Redirect to the same page to prevent resubmission
-                        header("Location: index.php");
-                        exit();
-                    } else {
-                        echo "<script>alert('Error adding review: " . mysqli_error($con) . "');</script>";
-                    }
-                } else {
-                    echo "<script>alert('Error moving the uploaded file.');</script>";
+                $uploadFileDir = './uploads/';
+                
+                // Create directory if it doesn't exist
+                if (!file_exists($uploadFileDir)) {
+                    mkdir($uploadFileDir, 0755, true);
                 }
-            } else {
-                echo "<script>alert('Upload failed. Allowed file types: " . implode(", ", $allowedfileExtensions) . "');</script>";
+                
+                $dest_path = $uploadFileDir . $newFileName;
+                
+                if (move_uploaded_file($fileTmpPath, $dest_path)) {
+                    // Insert using prepared statement
+                    $stmt = $con->prepare("INSERT INTO review (userid, email, image, usermessage, date_time, username) 
+                                         VALUES (?, ?, ?, ?, NOW(), ?)");
+                    $stmt->bind_param("issss", $userid, $useremail, $newFileName, $usermessage, $username);
+                    $stmt->execute();
+                    $stmt->close();
+                    
+                    $_SESSION['review_submitted'] = true;
+                    header("Location: about.php");
+                    exit();
+                }
             }
-        } else {
-            echo "<script>alert('Error with file upload.');</script>";
         }
     } else {
-        echo "<script>alert('Login First To Add Review');
-        window.location.href = 'login/account.php';</script>";
+        $_SESSION['login_required'] = true;
+        header("Location: login/account.php");
+        exit();
     }
 }
 
-// Check for review submission success message
+// Check for review submission success
+$reviewSuccess = false;
 if (isset($_SESSION['review_submitted'])) {
-    echo "<script>alert('User Review Added');</script>";
-    unset($_SESSION['review_submitted']); // Clear the session variable
+    $reviewSuccess = true;
+    unset($_SESSION['review_submitted']);
+}
+
+// Check for login required message
+$loginRequired = false;
+if (isset($_SESSION['login_required'])) {
+    $loginRequired = true;
+    unset($_SESSION['login_required']);
 }
 
 // Fetch destination values from the 'trips' table
 $query = "SELECT DISTINCT destination FROM trips";
 $result = $con->query($query);
-
+$destinations = [];
 if ($result) {
-    $destinations = [];
     while ($row = $result->fetch_assoc()) {
         $destinations[] = $row['destination'];
     }
-} else {
-    echo "Error fetching destinations: " . mysqli_error($con);
+}
+
+// Fetch agent data
+$agentQuery = "SELECT * FROM agent";
+$agentResult = mysqli_query($con, $agentQuery);
+
+if (!$agentResult) {
+    die("Query failed: " . mysqli_error($con));
 }
 
 // Close the database connection
@@ -81,514 +103,1186 @@ mysqli_close($con);
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
-   <title>Traveler.com</title>
+    <title>About Us - ExpenseVoyage</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="Free HTML Templates" name="keywords">
-    <meta content="Free HTML Templates" name="description">
-
+    <meta content="About ExpenseVoyage - Premium Travel Experiences" name="keywords">
+    <meta content="Learn about ExpenseVoyage and our mission to provide premium travel experiences worldwide" name="description">
+    
     <!-- Favicon -->
-   <link href="img/favicon.ico" rel="icon">
+    <link href="img/favicon.ico" rel="icon">
     <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
     <link rel="manifest" href="img/site.webmanifest">
-    <link rel="mask-icon" href="img/safari-pinned-tab.svg" color="#5bbad5">
-    <meta name="msapplication-TileColor" content="#da532c">
-    <meta name="theme-color" content="#ffffff">
-    <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
-    <link rel="manifest" href="img/site.webmanifest">
-    <link rel="mask-icon" href="img/safari-pinned-tab.svg" color="#5bbad5">
-    <meta name="msapplication-TileColor" content="#da532c">
-    <meta name="theme-color" content="#ffffff">
-
+    
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"> 
-
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <!-- Libraries Stylesheet -->
     <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
     <link href="lib/tempusdominus/css/tempusdominus-bootstrap-4.min.css" rel="stylesheet" />
-
-    <!-- Customized Bootstrap Stylesheet -->
-    <link href="css/style.css" rel="stylesheet">
-</head>
-
-<body>
-<style>
     
-    body {
-      --sb-track-color: #232E33;
-      --sb-thumb-color: #7AB730;
-      --sb-size: 14px;
-    }
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
-    body::-webkit-scrollbar {
-      width: 12px;
-    }
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     
-    body::-webkit-scrollbar-track {
-      background: var(--sb-track-color);
-      border-radius: 1px;
-    }
+    <!-- Particles.js for animated background -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     
-    body::-webkit-scrollbar-thumb {
-      background: var(--sb-thumb-color);
-      border-radius: 3px;
-      
-    }
-    
-    @supports not selector(::-webkit-scrollbar) {
-      body {
-        scrollbar-color: var(--sb-thumb-color)
-                         var(--sb-track-color);
-      }
-    }
+    <!-- Customized Stylesheet -->
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --accent: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #06ffa5;
+            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: var(--dark);
+            background-color: #f5f7ff;
+            overflow-x: hidden;
+        }
+        
+        /* Animated Background */
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            background: linear-gradient(135deg, #1a1c20, #2d3436);
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+        
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .section-title {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 2.5rem;
+    color: white;
+}           position: relative;
+            display: inline-block;
+            margin-bottom: 2.5rem;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -10px;
+            width: 50px;
+            height: 4px;
+            background: var(--gradient);
+            border-radius: 2px;
+        }
+        
+        .text-primary {
+            color: var(--primary) !important;
+        }
+        
+        .text-accent {
+            color: var(--accent) !important;
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 12px 30px;
+            font-weight: 600;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(67, 97, 238, 0.4);
+            color: white;
+        }
+        
+        .btn-outline-primary {
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        /* Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            padding: 15px 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+        
+        .navbar-brand span {
+            color: var(--dark);
+        }
+        
+        .navbar-nav .nav-link {
+            font-weight: 500;
+            margin: 0 10px;
+            color: var(--dark);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active {
+            color: var(--primary);
+        }
+        
+        .navbar-nav .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-nav .nav-link:hover::after, .navbar-nav .nav-link.active::after {
+            width: 100%;
+        }
+        
+        .navbar-toggler {
+            border: none;
+            padding: 0;
+        }
+        
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+        
+        .navbar-toggler span {
+            display: block;
+            width: 25px;
+            height: 3px;
+            margin: 5px 0;
+            background: var(--primary);
+            transition: all 0.3s ease;
+        }
+        
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('img/about-bg.jpg');
+            background-size: cover;
+            background-position: center;
+            padding: 120px 0 80px;
+            position: relative;
+        }
+        
+        .page-header h1 {
+            color: white;
+            font-weight: 800;
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .breadcrumb {
+            background: none;
+            padding: 0;
+            margin: 0;
+            justify-content: center;
+        }
+        
+        .breadcrumb-item + .breadcrumb-item::before {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .breadcrumb-item.active {
+            color: white;
+        }
+        
+        .breadcrumb-item a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .breadcrumb-item a:hover {
+            color: white;
+        }
+        
+        /* Booking Section */
+        .booking {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: -80px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .booking .form-control {
+            border: none;
+            border-radius: 50px;
+            padding: 15px 25px;
+            background: #f8f9fa;
+            font-weight: 500;
+            height: auto;
+        }
+        
+        .booking .form-control:focus {
+            box-shadow: none;
+            background: white;
+            border: 2px solid var(--primary);
+        }
+        
+        .booking .btn {
+            height: auto;
+            padding: 15px 30px;
+            border-radius: 50px;
+        }
+        
+        /* Section Styling */
+        section {
+            padding: 100px 0;
+            position: relative;
+        }
+        
+        .section-bg {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            padding: 50px;
+            margin-bottom: 30px;
+        }
+        
+        /* About Section */
+        .about-img {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .about-img img {
+            transition: all 0.5s ease;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .about-img:hover img {
+            transform: scale(1.05);
+        }
+        
+        .about-text {
+            padding: 40px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.05);
+            height: 100%;
+        }
+        
+        /* Feature Section */
+        .feature-item {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .feature-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: white;
+            font-size: 1.8rem;
+        }
+        
+        /* Review Section */
+        .review-form {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .review-header {
+            background: var(--gradient);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .review-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        
+        .review-body {
+            padding: 40px;
+        }
+        
+        .review-body .form-control {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .review-body .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+        }
+        
+        /* Success Message */
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        /* Team Section */
+        .team-item {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .team-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .team-img {
+            height: 250px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .team-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.5s ease;
+        }
+        
+        .team-item:hover .team-img img {
+            transform: scale(1.1);
+        }
+        
+        .team-social {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .team-item:hover .team-social {
+            opacity: 1;
+        }
+        
+        .team-social a {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 5px;
+            color: var(--primary);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .team-social a:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-5px);
+        }
+        
+        .team-info {
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .team-info h5 {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .team-info p {
+            color: #6c757d;
+            margin: 0;
+        }
+        
+        /* Footer */
+        footer {
+            background: linear-gradient(135deg, #1a1c20, #2d3436);
+            color: rgba(255, 255, 255, 0.7);
+            padding: 80px 0 0;
+            position: relative;
+        }
+        
+        footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: var(--gradient);
+        }
+        
+        .footer-logo {
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: white;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        
+        .footer-logo span {
+            color: var(--accent);
+        }
+        
+        .footer-about {
+            margin-bottom: 30px;
+        }
+        
+        .footer-title {
+            color: white;
+            font-weight: 700;
+            margin-bottom: 20px;
+            position: relative;
+            padding-bottom: 10px;
+        }
+        
+        .footer-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 2px;
+            background: var(--accent);
+        }
+        
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            display: block;
+            margin-bottom: 10px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .footer-links a:hover {
+            color: var(--accent);
+            padding-left: 5px;
+        }
+        
+        .footer-contact p {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .footer-contact i {
+            margin-right: 10px;
+            color: var(--accent);
+        }
+        
+        .footer-newsletter .form-control {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50px;
+            padding: 15px 25px;
+            color: white;
+            margin-bottom: 15px;
+        }
+        
+        .footer-newsletter .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .footer-newsletter .form-control:focus {
+            box-shadow: none;
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .footer-newsletter .btn {
+            width: 100%;
+            border-radius: 50px;
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px 0;
+            margin-top: 50px;
+            text-align: center;
+        }
+        
+        .footer-social a {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 5px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .footer-social a:hover {
+            background: var(--accent);
+            transform: translateY(-5px);
+        }
+        
+        /* Back to Top */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 99;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .back-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .back-to-top:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            color: white;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Responsive */
+        @media (max-width: 991px) {
+            .page-header h1 {
+                font-size: 2.5rem;
+            }
+            
+            section {
+                padding: 70px 0;
+            }
+        }
+        
+        @media (max-width: 767px) {
+            .page-header h1 {
+                font-size: 2rem;
+            }
+            
+            .booking {
+                margin-top: -50px;
+                padding: 20px;
+            }
+            
+            .about-text {
+                padding: 30px 20px;
+                margin-top: 30px;
+            }
+            
+            .section-bg {
+                padding: 30px 20px;
+            }
+            
+            .review-body {
+                padding: 30px 20px;
+            }
+        }
     </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div id="particles-js"></div>
+    
     <!-- Topbar Start -->
-    <div class="container-fluid bg-light pt-3 d-none d-lg-block">
+    <div class="container-fluid bg-light py-3 d-none d-lg-block">
         <div class="container">
             <div class="row">
-                <div class="col-lg-6 text-center text-lg-left mb-2 mb-lg-0">
+                <div class="col-md-6 text-center text-md-left mb-2 mb-md-0">
                     <div class="d-inline-flex align-items-center">
-                        <p><i class="fa fa-envelope mr-2"></i>ubaidsoomro505@gmail.com</p>
-                        <p class="text-body px-3">|</p>
-                        <p><i class="fa fa-phone-alt mr-2"></i>+92 3188 893 863</p>
+                        <p class="mb-0"><i class="fa fa-envelope mr-2 text-primary"></i>ubaidsoomro505@gmail.com</p>
+                        <p class="mb-0 px-3">|</p>
+                        <p class="mb-0"><i class="fa fa-phone-alt mr-2 text-primary"></i>+92 3188 893 863</p>
                     </div>
                 </div>
-                <div class="col-lg-6 text-center text-lg-right">
+                <div class="col-md-6 text-center text-md-right">
                     <div class="d-inline-flex align-items-center">
-                        <a class="text-primary px-3" href="">
-                            <i class="fab fa-facebook-f"></i>
-                        </a>
-                        <a class="text-primary px-3" href="">
-                            <i class="fab fa-twitter"></i>
-                        </a>
-                        <a class="text-primary px-3" href="">
-                            <i class="fab fa-linkedin-in"></i>
-                        </a>
-                        <a class="text-primary px-3" href="">
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                        <a class="text-primary pl-3" href="">
-                            <i class="fab fa-youtube"></i>
-                        </a>
+                        <a class="text-primary px-3" href=""><i class="fab fa-facebook-f"></i></a>
+                        <a class="text-primary px-3" href=""><i class="fab fa-twitter"></i></a>
+                        <a class="text-primary px-3" href=""><i class="fab fa-linkedin-in"></i></a>
+                        <a class="text-primary px-3" href=""><i class="fab fa-instagram"></i></a>
+                        <a class="text-primary pl-3" href=""><i class="fab fa-youtube"></i></a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <!-- Topbar End -->
-
-
-    <!-- Navbar Start -->
-    <div class="container-fluid position-relative nav-bar p-0">
-        <div class="container-lg position-relative p-0 px-lg-3" style="z-index: 9;">
-            <nav class="navbar navbar-expand-lg bg-light navbar-light shadow-lg py-3 py-lg-0 pl-3 pl-lg-5">
-                <a href="" class="navbar-brand">
-          <h1 class="text-primary" style="font-size:25px;"><span style="color:black;">Expense</span>Voyage</h1>
-                </a>
-                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbarCollapse">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse justify-content-between px-3" id="navbarCollapse">
-                    <div class="navbar-nav ml-auto py-0">
-                        <a href="index.php" class="nav-item nav-link">Home</a>
-                        <a href="about.php" class="nav-item nav-link active">About</a>
-                        <a href="service.php" class="nav-item nav-link">Services</a>
-                        <a href="package.php" class="nav-item nav-link">Tour Packages</a>
-                        <div class="nav-item dropdown">
-                            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Pages</a>
-                             <div class="dropdown-menu border-0 rounded-0 m-0">
-                                  <a href="blog.php" class="dropdown-item">Blog</a>
-                              
-                                <a href="destination.php" class="dropdown-item">Destination</a>
-                                <a href="guide.php" class="dropdown-item">Travel Guides</a>
-                                 
-                            </div>
-                        </div>
-                         <a href="contact.php" class="nav-item nav-link">Contact</a>
-
-                        <div class="login-register d-flex align-items-center">
-
-                        <?php
-if (isset($_SESSION['email'])) {
-    // Check if 'name' is set in the session, otherwise display a default name
-    $name = isset($_SESSION['name']) ? $_SESSION['name'] : 'User';
     
-    echo ' <div class="nav-item dropdown">
-        <a href="#" class="nav-link dropdown-toggle active p-0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            <span>' . htmlspecialchars($name) . '</span> <!-- Display users name -->
-        </a>
-        <div class="dropdown-menu border-0 rounded-0 m-0">
-            <a href="user-profile.php" class="dropdown-item">MY Account</a>
-            <a href="admin/index.php" class="dropdown-item">Only Admin</a>
-            <a href="booking.php" class="dropdown-item">Booking</a>
-            <a href="logout.php" class="dropdown-item">Logout</a>
-        </div>
-    </div>';
-} else {
-    echo ' <div class="nav-item dropdown">
-        <a href="#" class="nav-link dropdown-toggle active p-0" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            <span>Login/Register</span>
-        </a>
-        <div class="dropdown-menu border-0 rounded-0 m-0">
-            <a href="login/account.php" class="dropdown-item active">Login/Register</a>
-        </div>
-    </div>';
-}
-?>
-
-                        </div>
-
-                      
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </div>
-    <!-- Navbar End -->
-
-
-    <!-- Header Start -->
-    <div class="container-fluid page-header">
+    <!-- Navbar Start -->
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
-            <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 400px">
-                <h3 class="display-4 text-white text-uppercase">About</h3>
-                <div class="d-inline-flex text-white">
-                    <p class="m-0 text-uppercase"><a class="text-white" href="index.php">Home</a></p>
-                    <i class="fa fa-angle-double-right pt-1 px-3"></i>
-                    <p class="m-0 text-uppercase">About</p>
+            <a href="index.php" class="navbar-brand animate__animated animate__fadeInLeft">
+                <span class="text-primary">Expense</span><span>Voyage</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <div class="navbar-nav ms-auto py-0">
+                    <a href="index.php" class="nav-item nav-link animate__animated animate__fadeInDown">Home</a>
+                    <a href="about.php" class="nav-item nav-link active animate__animated animate__fadeInDown">About</a>
+                    <a href="service.php" class="nav-item nav-link animate__animated animate__fadeInDown">Services</a>
+                    <a href="package.php" class="nav-item nav-link animate__animated animate__fadeInDown">Tour Packages</a>
+                    <div class="nav-item dropdown animate__animated animate__fadeInDown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Pages</a>
+                        <div class="dropdown-menu m-0">
+                            <a href="blog.php" class="dropdown-item">Blog</a>
+                            <a href="destination.php" class="dropdown-item">Destination</a>
+                            <a href="guide.php" class="dropdown-item">Travel Guides</a>
+                        </div>
+                    </div>
+                    <a href="contact.php" class="nav-item nav-link animate__animated animate__fadeInDown">Contact</a>
+                    <div class="nav-item dropdown animate__animated animate__fadeInRight">
+                        <?php
+                        if (isset($_SESSION['email'])) {
+                            $name = $_SESSION['name'] ?? 'User';
+                            echo '<a href="#" class="nav-link dropdown-toggle active" data-bs-toggle="dropdown"><span>' . htmlspecialchars($name) . '</span></a>
+                            <div class="dropdown-menu dropdown-menu-end m-0">
+                                <a href="user-profile.php" class="dropdown-item">My Account</a>
+                                <a href="admin/index.php" class="dropdown-item">Admin Panel</a>
+                                <a href="booking.php" class="dropdown-item">Booking</a>
+                                <a href="logout.php" class="dropdown-item">Logout</a>
+                            </div>';
+                        } else {
+                            echo '<a href="#" class="nav-link dropdown-toggle active" data-bs-toggle="dropdown"><span>Login/Register</span></a>
+                            <div class="dropdown-menu dropdown-menu-end m-0">
+                                <a href="login/account.php" class="dropdown-item">Login/Register</a>
+                            </div>';
+                        }
+                        ?>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- Header End -->
-
-
-    <!-- Booking Start -->
-    <div class="container-fluid booking mt-5 pb-5">
-        <div class="container pb-5">
-            <div class="bg-light shadow" style="padding: 30px;">
-                <form action="package.php" method="get">
-                    <div class="row align-items-center" style="min-height: 60px;">
-                        <div class="col-md-10">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="mb-3 mb-md-0">
-                                        <input type="text" class="form-control p-4" placeholder="Enter Destination" name="destination">
-                                    </div>
-                                </div>
-
-
-
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-primary btn-block" type="submit"
-                                style="height: 47px; margin-top: -2px;">Submit</button>
-                        </div>
-                    </div>
-                </form>
+    </nav>
+    <!-- Navbar End -->
+    
+    <!-- Page Header Start -->
+    <div class="page-header">
+        <div class="container">
+            <div class="text-center">
+                <h1 class="animate__animated animate__fadeInDown">About Us</h1>
+                <nav aria-label="breadcrumb" class="animate__animated animate__fadeInUp">
+                    <ol class="breadcrumb justify-content-center">
+                        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+                        <li class="breadcrumb-item active">About</li>
+                    </ol>
+                </nav>
             </div>
         </div>
+    </div>
+    <!-- Page Header End -->
+    
+    <!-- Booking Start -->
+    <div class="container booking animate__animated animate__fadeInUp">
+        <form action="package.php" method="get">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-10">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <input type="text" class="form-control" placeholder="Enter Destination" name="destination">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" type="submit">Search</button>
+                </div>
+            </div>
+        </form>
     </div>
     <!-- Booking End -->
-
-
+    
     <!-- About Start -->
-    <div class="container-fluid py-5">
-        <div class="container pt-5">
-            <div class="row">
-                <div class="col-lg-6" style="min-height: 500px;">
-                    <div class="position-relative h-100">
-                        <img class="position-absolute w-100 h-100" src="img/about.jpg" style="object-fit: cover;">
-                    </div>
-                </div>
-                <div class="col-lg-6 pt-5 pb-lg-5">
-                    <div class="about-text bg-white p-4 p-lg-5 my-lg-5">
-                        <h6 class="text-primary text-uppercase" style="letter-spacing: 5px;">About Us</h6>
-                        <h1 class="mb-3">We Provide Best Tour Packages In Your Budget</h1>
-                        <p>we believe that every journey should be unforgettable. As passionate travel enthusiasts, our goal is to help you plan your dream trips with ease and confidence. Whether you're seeking adventure, relaxation, or cultural exploration, we curate personalized itineraries tailored to your preferences and budget.</p>
-                        <div class="row mb-4">
-                            <div class="col-6">
-                                <img class="img-fluid" src="img/about-1.jpg" alt="">
-                            </div>
-                            <div class="col-6">
-                                <img class="img-fluid" src="img/about-2.jpg" alt="">
-                            </div>
-                        </div>
-                        <a href="" class="btn btn-primary mt-1">Book Now</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- About End -->
-
-
-    <!-- Feature Start -->
-    <div class="container-fluid pb-5">
-        <div class="container pb-5">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="d-flex mb-4 mb-lg-0">
-                        <div class="d-flex flex-shrink-0 align-items-center justify-content-center bg-primary mr-3" style="height: 100px; width: 100px;">
-                            <i class="fa fa-2x fa-money-check-alt text-white"></i>
-                        </div>
-                        <div class="d-flex flex-column">
-                            <h5 class="">Competitive Pricing</h5>
-                            <p class="m-0">We believe that amazing travel experiences shouldn’t come with a hefty price tag.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="d-flex mb-4 mb-lg-0">
-                        <div class="d-flex flex-shrink-0 align-items-center justify-content-center bg-primary mr-3" style="height: 100px; width: 100px;">
-                            <i class="fa fa-2x fa-award text-white"></i>
-                        </div>
-                        <div class="d-flex flex-column">
-                            <h5 class="">Best Services</h5>
-                            <p class="m-0">We pride ourselves on delivering the best services to make your travel.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="d-flex mb-4 mb-lg-0">
-                        <div class="d-flex flex-shrink-0 align-items-center justify-content-center bg-primary mr-3" style="height: 100px; width: 100px;">
-                            <i class="fa fa-2x fa-globe text-white"></i>
-                        </div>
-                        <div class="d-flex flex-column">
-                            <h5 class="">Worldwide Coverage</h5>
-                            <p class="m-0">We offer worldwide coverage, bringing the world to your fingertips.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Feature End -->
-
-
-    <!-- Registration Start -->
-    <div class="container-fluid bg-registration py-5" style="margin: 90px 0;">
-        <div class="container py-5">
+    <section class="about">
+        <div class="container">
             <div class="row align-items-center">
-                <div class="col-lg-7 mb-5 mb-lg-0">
-                    <div class="mb-4">
-                        <h6 class="text-primary text-uppercase" style="letter-spacing: 5px;">Mega Offer</h6>
-                        <h1 class="text-white"><span class="text-primary">30% OFF</span> For Honeymoon</h1>
+                <div class="col-lg-6 animate__animated animate__fadeInLeft">
+                    <div class="about-img">
+                        <img src="img/about.jpg" class="img-fluid" alt="About Us">
                     </div>
-                    <p class="text-white">We specialize in creating honeymoon trip services that are as unique as your love story. Whether you're dreaming of a romantic beach getaway, a serene mountain retreat, or an exotic adventure, we craft personalized itineraries tailored to your preferences.</p>
-                    <ul class="list-inline text-white m-0">
-                        <li class="py-2"><i class="fa fa-check text-primary mr-3"></i>Labore eos amet dolor amet diam</li>
-                        <li class="py-2"><i class="fa fa-check text-primary mr-3"></i>Etsea et sit dolor amet ipsum</li>
-                        <li class="py-2"><i class="fa fa-check text-primary mr-3"></i>Diam dolor diam elitripsum vero.</li>
-                    </ul>
                 </div>
-                <div class="col-lg-5">
-                    <div class="card border-0">
-                        <div class="card-header bg-primary text-center p-4">
-                            <h1 class="text-white m-0">Your Review</h1>
+                <div class="col-lg-6 animate__animated animate__fadeInRight">
+                    <div class="about-text">
+                        <h6 class="text-primary text-uppercase">About Us</h6>
+                        <h1 class="section-title">We Provide Premium Travel Experiences</h1>
+                        <p>At ExpenseVoyage, we believe that every journey should be unforgettable. As passionate travel enthusiasts, our goal is to help you plan your dream trips with ease and confidence.</p>
+                        <p>Whether you're seeking adventure, relaxation, or cultural exploration, we curate personalized itineraries tailored to your preferences and budget.</p>
+                        <div class="row g-3 pt-3">
+                            <div class="col-6">
+                                <img src="img/about-1.jpg" class="img-fluid rounded" alt="Travel">
+                            </div>
+                            <div class="col-6">
+                                <img src="img/about-2.jpg" class="img-fluid rounded" alt="Adventure">
+                            </div>
                         </div>
-                        <div class="card-body rounded-bottom bg-white p-5">
-                        <form method="POST" action="index.php" enctype="multipart/form-data">
-    <div class="form-group">
-        <input type="email" name="useremail" class="form-control p-4" placeholder="Your Email" required="required" />
-    </div>
-    <div class="form-group" >
-        <input type="file" name="profile" class="form-control p-4" required="required" style="height:80px;" />
-    </div>
-    <div class="form-group">
-        <textarea name="usermessage" class="form-control pl-4 pt-2" rows="6" placeholder="Enter Review"></textarea>
-    </div>
-    <div>
-        <button class="btn btn-primary btn-block py-3" type="submit" name="sendreview">Send Review</button>
-    </div>
-</form>
+                        <a href="package.php" class="btn btn-primary mt-4">Explore Tours</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- About End -->
+    
+    <!-- Feature Start -->
+    <section class="features">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h6 class="text-primary text-uppercase">Why Choose Us</h6>
+                <h1 class="section-title">Our Special Features</h1>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <h5>Competitive Pricing</h5>
+                        <p>We believe that amazing travel experiences shouldn't come with a hefty price tag. Our packages offer exceptional value.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-award"></i>
+                        </div>
+                        <h5>Best Services</h5>
+                        <p>We pride ourselves on delivering the best services to make your travel experience seamless and enjoyable from start to finish.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-globe-americas"></i>
+                        </div>
+                        <h5>Worldwide Coverage</h5>
+                        <p>We offer worldwide coverage, bringing the world to your fingertips with destinations across all continents.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Feature End -->
+    
+    <!-- Review Start -->
+    <section class="review">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-7 mb-5 mb-lg-0 animate__animated animate__fadeInLeft">
+                    <div class="section-bg">
+                        <h6 class="text-primary text-uppercase">Special Offer</h6>
+                        <h1 class="section-title"><span class="text-primary">30% OFF</span> For Honeymoon Packages</h1>
+                        <p>We specialize in creating honeymoon trip services that are as unique as your love story. Whether you're dreaming of a romantic beach getaway, a serene mountain retreat, or an exotic adventure, we craft personalized itineraries tailored to your preferences.</p>
+                        <ul class="list-unstyled">
+                            <li class="py-2"><i class="fas fa-check-circle text-primary me-2"></i>Personalized honeymoon experiences</li>
+                            <li class="py-2"><i class="fas fa-check-circle text-primary me-2"></i>Luxury accommodations at special rates</li>
+                            <li class="py-2"><i class="fas fa-check-circle text-primary me-2"></i>Exclusive romantic experiences</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-5 animate__animated animate__fadeInRight">
+                    <div class="review-form">
+                        <div class="review-header">
+                            <h1>Share Your Experience</h1>
+                        </div>
+                        <div class="review-body">
+                            <?php if ($reviewSuccess): ?>
+                                <div class="success-message">
+                                    Thank you for your review! It has been submitted successfully.
+                                </div>
+                            <?php endif; ?>
+                            
+                            <form method="POST" action="about.php" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <input type="email" name="useremail" class="form-control" placeholder="Your Email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <input type="file" name="profile" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <textarea name="usermessage" class="form-control" rows="4" placeholder="Share your experience" required></textarea>
+                                </div>
+                                <div>
+                                    <button class="btn btn-primary w-100" type="submit" name="sendreview">Submit Review</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- Registration End -->
-
-
+    </section>
+    <!-- Review End -->
+    
     <!-- Team Start -->
-    <div class="container-fluid py-5">
-        <div class="container pt-5 pb-3">
-            <div class="text-center mb-3 pb-3">
-                <h6 class="text-primary text-uppercase" style="letter-spacing: 5px;">Guides</h6>
-                <h1>Our Travel Guides</h1>
+    <section class="team">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h6 class="text-primary text-uppercase">Travel Experts</h6>
+                <h1 class="section-title">Meet Our Guides</h1>
             </div>
-            <div class="row">
-                <div class="col-lg-3 col-md-4 col-sm-6 pb-1">
-                    <div class="team-item bg-white mb-4">
-                        <div class="team-img position-relative overflow-hidden">
-                            <img class="img-fluid w-100" src="img/team-1.jpg" alt="">
-                            <div class="team-social">
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-twitter"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-facebook-f"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-instagram"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-linkedin-in"></i></a>
+            <div class="row g-4">
+                <?php
+                $basePath = 'admin/upload/agents/';
+                
+                while ($agent = mysqli_fetch_assoc($agentResult)):
+                    $imageFilename = htmlspecialchars($agent['a_image']);
+                    $imagePath = $basePath . $imageFilename;
+                    $agentName = htmlspecialchars($agent['a_name']);
+                    $agentProfession = htmlspecialchars($agent['a_profetion']);
+                ?>
+                    <div class="col-lg-3 col-md-6 animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+                        <div class="team-item">
+                            <div class="team-img">
+                                <img src="<?php echo $imagePath; ?>" class="img-fluid" alt="<?php echo $agentName; ?>" onerror="this.src='img/placeholder.jpg';">
+                                <div class="team-social">
+                                    <a href=""><i class="fab fa-twitter"></i></a>
+                                    <a href=""><i class="fab fa-facebook-f"></i></a>
+                                    <a href=""><i class="fab fa-instagram"></i></a>
+                                    <a href=""><i class="fab fa-linkedin-in"></i></a>
+                                </div>
+                            </div>
+                            <div class="team-info">
+                                <h5><?php echo $agentName; ?></h5>
+                                <p><?php echo $agentProfession; ?></p>
                             </div>
                         </div>
-                        <div class="text-center py-4">
-                            <h5 class="text-truncate">Guide Name</h5>
-                            <p class="m-0">Designation</p>
-                        </div>
                     </div>
-                </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 pb-1">
-                    <div class="team-item bg-white mb-4">
-                        <div class="team-img position-relative overflow-hidden">
-                            <img class="img-fluid w-100" src="img/team-2.jpg" alt="">
-                            <div class="team-social">
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-twitter"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-facebook-f"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-instagram"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-linkedin-in"></i></a>
-                            </div>
-                        </div>
-                        <div class="text-center py-4">
-                            <h5 class="text-truncate">Guide Name</h5>
-                            <p class="m-0">Designation</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 pb-1">
-                    <div class="team-item bg-white mb-4">
-                        <div class="team-img position-relative overflow-hidden">
-                            <img class="img-fluid w-100" src="img/team-3.jpg" alt="">
-                            <div class="team-social">
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-twitter"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-facebook-f"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-instagram"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-linkedin-in"></i></a>
-                            </div>
-                        </div>
-                        <div class="text-center py-4">
-                            <h5 class="text-truncate">Guide Name</h5>
-                            <p class="m-0">Designation</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-4 col-sm-6 pb-1">
-                    <div class="team-item bg-white mb-4">
-                        <div class="team-img position-relative overflow-hidden">
-                            <img class="img-fluid w-100" src="img/team-4.jpg" alt="">
-                            <div class="team-social">
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-twitter"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-facebook-f"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-instagram"></i></a>
-                                <a class="btn btn-outline-primary btn-square" href=""><i class="fab fa-linkedin-in"></i></a>
-                            </div>
-                        </div>
-                        <div class="text-center py-4">
-                            <h5 class="text-truncate">Guide Name</h5>
-                            <p class="m-0">Designation</p>
-                        </div>
-                    </div>
-                </div>
+                <?php endwhile; ?>
             </div>
         </div>
-    </div>
+    </section>
     <!-- Team End -->
-
-
+    
     <!-- Footer Start -->
-   <div class="container-fluid bg-dark text-white-50 py-5 px-sm-3 px-lg-5" style="margin-top: 90px;">
-        <div class="row pt-5">
-            <div class="col-lg-3 col-md-6 mb-5">
-            <a href="" class="navbar-brand">
-                    <h1 class="m-0 text-primary" style="font-size:25px;"><span style="color:white;">Expense</span>Voyage</h1>
-                </a>
-                <p>Sed ipsum clita tempor ipsum ipsum amet sit ipsum lorem amet labore rebum lorem ipsum dolor. No sed
-                    vero lorem dolor dolor</p>
-                <h6 class="text-white text-uppercase mt-4 mb-3" style="letter-spacing: 5px;">Follow Us</h6>
-                <div class="d-flex justify-content-start">
-                    <a class="btn btn-outline-primary btn-square mr-2" href="#"><i class="fab fa-twitter"></i></a>
-                    <a class="btn btn-outline-primary btn-square mr-2" href="#"><i class="fab fa-facebook-f"></i></a>
-                    <a class="btn btn-outline-primary btn-square mr-2" href="#"><i class="fab fa-linkedin-in"></i></a>
-                    <a class="btn btn-outline-primary btn-square" href="#"><i class="fab fa-instagram"></i></a>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-5">
-                <h5 class="text-white text-uppercase mb-4" style="letter-spacing: 5px;">Our Services</h5>
-                <div class="d-flex flex-column justify-content-start">
-                    <a class="text-white-50 mb-2" href="about.php"><i class="fa fa-angle-right mr-2"></i>About</a>
-                    <a class="text-white-50 mb-2" href="destination.php"><i
-                            class="fa fa-angle-right mr-2"></i>Destination</a>
-                    <a class="text-white-50 mb-2" href="service.php"><i class="fa fa-angle-right mr-2"></i>Services</a>
-                    <a class="text-white-50 mb-2" href="package.php"><i class="fa fa-angle-right mr-2"></i>Packages</a>
-                    <a class="text-white-50 mb-2" href="guide.php"><i class="fa fa-angle-right mr-2"></i>Guides</a>
-
-                    <a class="text-white-50" href="blog.php"><i class="fa fa-angle-right mr-2"></i>Blog</a>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-5">
-                <h5 class="text-white text-uppercase mb-4" style="letter-spacing: 5px;">Useful Links</h5>
-                <div class="d-flex flex-column justify-content-start">
-                    <!-- Social Media Links -->
-                    <a class="text-white-50 mb-2" href="#"><i class="fab fa-facebook-f mr-2"></i>Facebook</a>
-                    <a class="text-white-50 mb-2" href="#"><i class="fab fa-instagram mr-2"></i>Instagram</a>
-                    <a class="text-white-50 mb-2" href="#"><i class="fab fa-twitter mr-2"></i>Twitter</a>
-                    <a class="text-white-50 mb-2" href="#"><i class="fab fa-linkedin mr-2"></i>LinkedIn</a>
-                    <a class="text-white-50 mb-2" href="#"><i class="fab fa-skype mr-2"></i>Skype</a>
-                    <a class="text-white-50" href="mailto:your-email@example.com"><i
-                            class="fa fa-envelope mr-2"></i>Gmail</a>
-                </div>
-            </div>
-
-            <div class="col-lg-3 col-md-6 mb-5">
-                <h5 class="text-white text-uppercase mb-4" style="letter-spacing: 5px;">Contact Us</h5>
-                <p><i class="fa fa-map-marker-alt mr-2"></i>Aptech Def Hyderabad Sindh Pakistan</p>
-                <p><i class="fa fa-phone-alt mr-2"></i>+92 3188 893 8630</p>
-                <p><i class="fa fa-envelope mr-2"></i>ubaidsoomro505@gmail.com</p>
-                <h6 class="text-white text-uppercase mt-4 mb-3" style="letter-spacing: 5px;">Newsletter</h6>
-                <div class="w-100">
-                    <div class="input-group">
-                        <input type="text" class="form-control border-light" style="padding: 25px;"
-                            placeholder="Your Email">
-                        <div class="input-group-append">
-                            <button class="btn btn-primary px-3">Sign Up</button>
+    <footer>
+        <div class="container">
+            <div class="row g-5">
+                <div class="col-lg-3 col-md-6">
+                    <a href="index.php" class="footer-logo">Expense<span>Voyage</span></a>
+                    <div class="footer-about mt-4">
+                        <p>Discover the world with ExpenseVoyage - Premium travel experiences tailored to your desires.</p>
+                        <div class="footer-social mt-4">
+                            <a href=""><i class="fab fa-twitter"></i></a>
+                            <a href=""><i class="fab fa-facebook-f"></i></a>
+                            <a href=""><i class="fab fa-instagram"></i></a>
+                            <a href=""><i class="fab fa-linkedin-in"></i></a>
                         </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="footer-title">Our Services</h5>
+                    <div class="footer-links">
+                        <a href="about.php">About Us</a>
+                        <a href="destination.php">Destinations</a>
+                        <a href="service.php">Services</a>
+                        <a href="package.php">Packages</a>
+                        <a href="guide.php">Travel Guides</a>
+                        <a href="blog.php">Blog</a>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="footer-title">Quick Links</h5>
+                    <div class="footer-links">
+                        <a href="">Contact Us</a>
+                        <a href="">Terms & Conditions</a>
+                        <a href="">Privacy Policy</a>
+                        <a href="">FAQs</a>
+                        <a href="">Support</a>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="footer-title">Contact Us</h5>
+                    <div class="footer-contact">
+                        <p><i class="fas fa-map-marker-alt"></i> Aptech Def Hyderabad Sindh Pakistan</p>
+                        <p><i class="fas fa-phone-alt"></i> +92 3188 893 8630</p>
+                        <p><i class="fas fa-envelope"></i> ubaidsoomro505@gmail.com</p>
+                    </div>
+                    <h5 class="footer-title mt-4">Newsletter</h5>
+                    <div class="footer-newsletter">
+                        <form>
+                            <input type="text" class="form-control" placeholder="Your Email">
+                            <button class="btn btn-primary w-100" type="submit">Subscribe</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div class="row">
+                    <div class="col-md-6 text-md-start text-center">
+                        <p>&copy; <?php echo date('Y'); ?> ExpenseVoyage. All Rights Reserved.</p>
+                    </div>
+                    <div class="col-md-6 text-md-end text-center">
+                        <p>Designed with <i class="fas fa-heart text-danger"></i> by ExpenseVoyage Team</p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
- 
+    </footer>
     <!-- Footer End -->
-
-
+    
     <!-- Back to Top -->
-    <a href="#" class="btn btn-lg btn-primary btn-lg-square back-to-top"><i class="fa fa-angle-double-up"></i></a>
-
-
+    <a href="#" class="back-to-top"><i class="fas fa-arrow-up"></i></a>
+    
     <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="lib/easing/easing.min.js"></script>
     <script src="lib/owlcarousel/owl.carousel.min.js"></script>
     <script src="lib/tempusdominus/js/moment.min.js"></script>
     <script src="lib/tempusdominus/js/moment-timezone.min.js"></script>
     <script src="lib/tempusdominus/js/tempusdominus-bootstrap-4.min.js"></script>
-
-    <!-- Contact Javascript File -->
-    <script src="mail/jqBootstrapValidation.min.js"></script>
-    <script src="mail/contact.js"></script>
-
+    
     <!-- Template Javascript -->
-    <script src="js/main.js"></script>
+    <script>
+        // Initialize particles.js for animated background
+        particlesJS('particles-js', {
+            particles: {
+                number: {
+                    value: 80,
+                    density: {
+                        enable: true,
+                        value_area: 800
+                    }
+                },
+                color: {
+                    value: '#4cc9f0'
+                },
+                shape: {
+                    type: 'circle'
+                },
+                opacity: {
+                    value: 0.5,
+                    random: true
+                },
+                size: {
+                    value: 3,
+                    random: true
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#4361ee',
+                    opacity: 0.4,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 2,
+                    direction: 'none',
+                    random: true,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: {
+                        enable: true,
+                        mode: 'grab'
+                    },
+                    onclick: {
+                        enable: true,
+                        mode: 'push'
+                    },
+                    resize: true
+                },
+                modes: {
+                    grab: {
+                        distance: 140,
+                        line_linked: {
+                            opacity: 1
+                        }
+                    },
+                    push: {
+                        particles_nb: 4
+                    }
+                }
+            },
+            retina_detect: true
+        });
+        
+        // Back to top button
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 300) {
+                $('.back-to-top').addClass('show');
+            } else {
+                $('.back-to-top').removeClass('show');
+            }
+        });
+        
+        $('.back-to-top').click(function() {
+            $('html, body').animate({scrollTop: 0}, 800);
+            return false;
+        });
+        
+        // Animation on scroll
+        $(window).on('load', function() {
+            $('.animate__animated').css('opacity', '0');
+            
+            $(window).scroll(function() {
+                var windowBottom = $(this).scrollTop() + $(this).innerHeight();
+                
+                $('.animate__animated').each(function() {
+                    var objectBottom = $(this).offset().top + $(this).outerHeight() / 2;
+                    
+                    if (objectBottom < windowBottom) {
+                        $(this).animate({'opacity': '1'}, 500);
+                    }
+                });
+            }).scroll();
+        });
+        
+        // Testimonial carousel
+        $('.testimonial-carousel').owlCarousel({
+            autoplay: true,
+            smartSpeed: 1000,
+            margin: 30,
+            dots: false,
+            loop: true,
+            nav: true,
+            navText: [
+                '<i class="fas fa-chevron-left"></i>',
+                '<i class="fas fa-chevron-right"></i>'
+            ],
+            responsive: {
+                0: {
+                    items: 1
+                },
+                768: {
+                    items: 2
+                },
+                992: {
+                    items: 3
+                }
+            }
+        });
+    </script>
 </body>
-
 </html>

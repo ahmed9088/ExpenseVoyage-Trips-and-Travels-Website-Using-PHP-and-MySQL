@@ -1187,7 +1187,11 @@ button.bg-danger:hover {
   margin-bottom: 1.875rem;
 }
 .section-header .section-title {
-  color: #333;
+    position: relative;
+    display: inline-block;
+    margin-bottom: 2.5rem;
+    color: white;
+} color: #333;
 }
 .line {
   background-color: #2962ff;

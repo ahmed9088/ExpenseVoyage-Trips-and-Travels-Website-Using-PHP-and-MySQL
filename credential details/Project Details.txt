@@ -7,16 +7,19 @@ Php my Admin: http://localhost/phpmyadmin/index.php?route=/database/structure&db
 Login details:
 Login Email: ubaidsoomro505@gmail.com
 Password: 123
+OR
+Email: ahmedhere1@icloud.com
+Password: ahmeD9088
 
 Login url:
-http://localhost/travel/login/account.php
+http://localhost/Expense-Voyage/login/account.php
 
 Admin Login details:
 Login Username: Ubaid Soomro
-Password: 123
+Password: @321
 
 Admin:
-http://localhost/travel/admin/index.php
+http://localhost/Expense-Voyage/admin/dashboard.php
 
 Home Page url:
-http://localhost/travel/index.php
+http://localhost/Expense-Voyage/index.php
