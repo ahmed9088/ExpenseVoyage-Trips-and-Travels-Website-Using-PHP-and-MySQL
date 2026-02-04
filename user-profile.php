@@ -9,6 +9,22 @@ if (!isset($_SESSION['userid'])) {
     exit();
 }
 
+$userid = $_SESSION['userid'];
+
+// Fetch user data early for both POST and GET logic
+$sql_fetch = "SELECT * FROM users WHERE id = ?";
+$stmt_fetch = mysqli_prepare($con, $sql_fetch);
+mysqli_stmt_bind_param($stmt_fetch, "i", $userid);
+mysqli_stmt_execute($stmt_fetch);
+$res_fetch = mysqli_stmt_get_result($stmt_fetch);
+$user = mysqli_fetch_assoc($res_fetch);
+
+if (!$user) {
+    session_destroy();
+    header("Location: login/account.php");
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Verify CSRF
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {

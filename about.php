@@ -10,12 +10,12 @@ if (isset($_POST['sendreview'])) {
         $usermessage = mysqli_real_escape_string($con, $_POST['usermessage']);
         $userid = $_SESSION['userid'];
         
-        $stmt = $con->prepare("SELECT name FROM user WHERE id = ?");
+        $stmt = $con->prepare("SELECT first_name, last_name FROM users WHERE id = ?");
         $stmt->bind_param("i", $userid);
         $stmt->execute();
         $result = $stmt->get_result();
         $userRow = $result->fetch_assoc();
-        $username = $userRow['name'];
+        $username = $userRow ? ($userRow['first_name'] . ' ' . $userRow['last_name']) : 'Voyageur';
         $stmt->close();
         
         if (isset($_FILES['profile']) && $_FILES['profile']['error'] == UPLOAD_ERR_OK) {
@@ -163,12 +163,16 @@ $agentResult = mysqli_query($con, "SELECT * FROM agent");
                         <?php while($agent = mysqli_fetch_assoc($agentResult)): ?>
                             <div class="col-lg-3 col-md-6">
                                 <div class="agent-card glass-panel p-4 h-100">
-                                    <img src="admin/user/<?php echo htmlspecialchars($agent['image']); ?>" alt="Agent" class="mb-3">
-                                    <h4 class="h5 mb-1"><?php echo htmlspecialchars($agent['aname']); ?></h4>
-                                    <p class="text-gold small text-uppercase tracking-widest mb-3"><?php echo htmlspecialchars($agent['atype']); ?></p>
+                                    <img src="admin/user/<?php echo htmlspecialchars($agent['a_image']); ?>" alt="Agent" class="mb-3">
+                                    <h4 class="h5 mb-1"><?php echo htmlspecialchars($agent['a_name']); ?></h4>
+                                    <p class="text-gold small text-uppercase tracking-widest mb-3"><?php echo htmlspecialchars($agent['a_profetion']); ?></p>
                                     <div class="d-flex justify-content-center gap-3">
-                                        <a href="mailto:<?php echo htmlspecialchars($agent['aemail']); ?>" class="text-white-50 hover-gold"><i class="fas fa-envelope"></i></a>
-                                        <a href="tel:<?php echo htmlspecialchars($agent['aphone']); ?>" class="text-white-50 hover-gold"><i class="fas fa-phone"></i></a>
+                                        <?php if (!empty($agent['aemail'])): ?>
+                                            <a href="mailto:<?php echo htmlspecialchars($agent['aemail']); ?>" class="text-white-50 hover-gold"><i class="fas fa-envelope"></i></a>
+                                        <?php endif; ?>
+                                        <?php if (!empty($agent['aphone'])): ?>
+                                            <a href="tel:<?php echo htmlspecialchars($agent['aphone']); ?>" class="text-white-50 hover-gold"><i class="fas fa-phone"></i></a>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
