@@ -212,6 +212,94 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </div>
                     </div>
                 </form>
+            <div class="glass-panel p-5 mt-5 bg-white shadow-lg border-0 animate__animated animate__fadeIn">
+                <h3 class="serif-font mb-4">My Expeditions</h3>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Voyage</th>
+                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Travel Date</th>
+                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Guests</th>
+                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Total</th>
+                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            $bSql = "SELECT b.*, t.trip_name, t.trip_image FROM bookings b JOIN trips t ON b.trip_id = t.trip_id WHERE b.user_id = ? ORDER BY b.booking_date DESC";
+                            $bStmt = mysqli_prepare($con, $bSql);
+                            mysqli_stmt_bind_param($bStmt, "i", $userid);
+                            mysqli_stmt_execute($bStmt);
+                            $bRes = mysqli_stmt_get_result($bStmt);
+                            
+                            if (mysqli_num_rows($bRes) > 0):
+                                while ($booking = mysqli_fetch_assoc($bRes)):
+                            ?>
+                                <tr>
+                                    <td class="py-4">
+                                        <div class="d-flex align-items-center">
+                                            <img src="<?php echo htmlspecialchars($booking['trip_image']); ?>" class="rounded-2 me-3" style="width: 60px; height: 40px; object-fit: cover;">
+                                            <span class="fw-bold"><?php echo htmlspecialchars($booking['trip_name']); ?></span>
+                                        </div>
+                                    </td>
+                                    <td><?php echo date('M d, Y', strtotime($booking['travel_date'])); ?></td>
+                                    <td><?php echo $booking['guests']; ?></td>
+                                    <td><span class="text-primary fw-bold">$<?php echo number_format($booking['total_price']); ?></span></td>
+                                    <td>
+                                        <span class="badge rounded-pill <?php echo $booking['status'] == 'confirmed' ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'; ?> px-3 py-2 text-uppercase" style="font-size: 0.7rem;">
+                                            <?php echo $booking['status']; ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php 
+                                endwhile;
+                            else:
+                            ?>
+                                <tr>
+                                    <td colspan="5" class="py-5 text-center text-muted">
+                                        <i class="fas fa-compass fa-3x mb-3 opacity-25"></i>
+                                        <p class="mb-0">No expeditions booked yet. The world is waiting for you.</p>
+                                        <a href="package.php" class="btn btn-link text-primary mt-2">Explore Destinations</a>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="glass-panel p-5 mt-5 bg-white shadow-lg border-0 animate__animated animate__fadeIn">
+                <h3 class="serif-font mb-4">Saved Voyages</h3>
+                <div class="row g-4">
+                    <?php
+                    $wSql = "SELECT t.* FROM wishlist w JOIN trips t ON w.trip_id = t.trip_id WHERE w.user_id = ?";
+                    $wStmt = mysqli_prepare($con, $wSql);
+                    mysqli_stmt_bind_param($wStmt, "i", $userid);
+                    mysqli_stmt_execute($wStmt);
+                    $wRes = mysqli_stmt_get_result($wStmt);
+                    
+                    if (mysqli_num_rows($wRes) > 0):
+                        while ($wTrip = mysqli_fetch_assoc($wRes)):
+                    ?>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+                                <img src="<?php echo htmlspecialchars($wTrip['trip_image']); ?>" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                <div class="p-3">
+                                    <h6 class="serif-font mb-1"><?php echo htmlspecialchars($wTrip['trip_name']); ?></h6>
+                                    <p class="text-primary small fw-bold mb-3">$<?php echo number_format($wTrip['budget']); ?></p>
+                                    <a href="trip_details.php?id=<?php echo $wTrip['trip_id']; ?>" class="btn btn-outline-primary btn-sm w-100">Explore</a>
+                                </div>
+                            </div>
+                        </div>
+                    <?php 
+                        endwhile;
+                    else:
+                    ?>
+                        <div class="col-12 py-4 text-center text-muted">
+                            <p class="small mb-0">Your collection is empty. Discover your next adventure on the <a href="index.php#packages">Packages</a> section.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </section>

@@ -12,6 +12,16 @@ if ($destination) {
     $query .= " WHERE destination LIKE '%$destination%'";
 }
 $trips_result = mysqli_query($con, $query);
+
+// Fetch active wishlist if logged in
+$user_wishlist = [];
+if (isset($_SESSION['userid'])) {
+    $uid = $_SESSION['userid'];
+    $wRes = mysqli_query($con, "SELECT trip_id FROM wishlist WHERE user_id = $uid");
+    while($wRow = mysqli_fetch_assoc($wRes)) {
+        $user_wishlist[] = $wRow['trip_id'];
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -81,6 +91,35 @@ $trips_result = mysqli_query($con, $query);
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
         }
+
+        .wishlist-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: none;
+            color: #ccc;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .wishlist-btn:hover {
+            transform: scale(1.1);
+            background: #fff;
+        }
+
+        .wishlist-btn.active {
+            color: #ff4757;
+            background: #fff;
+        }
     </style>
 </head>
 <body>
@@ -115,6 +154,10 @@ $trips_result = mysqli_query($con, $query);
                         <div class="col-lg-4 col-md-6 animate-on-scroll">
                             <div class="trip-card glass-panel h-100">
                                 <div class="trip-img-wrap">
+                                    <button class="wishlist-btn <?php echo in_array($trip['trip_id'], $user_wishlist) ? 'active' : ''; ?>" 
+                                            onclick="toggleWishlist(this, <?php echo $trip['trip_id']; ?>)">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
                                     <img src="<?php echo htmlspecialchars($trip['trip_image']); ?>" class="trip-img" alt="Trip">
                                     <div class="price-tag">$<?php echo number_format($trip['budget']); ?></div>
                                 </div>
@@ -151,5 +194,29 @@ $trips_result = mysqli_query($con, $query);
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/custom.js"></script>
+    <script>
+        function toggleWishlist(btn, tripId) {
+            <?php if (!isset($_SESSION['userid'])): ?>
+                window.location.href = 'login/account.php';
+                return;
+            <?php endif; ?>
+
+            $.ajax({
+                url: 'wishlist-handler.php',
+                method: 'POST',
+                data: { trip_id: tripId, action: 'toggle' },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'added') {
+                        $(btn).addClass('active');
+                    } else if (response.status === 'removed') {
+                        $(btn).removeClass('active');
+                    } else if (response.status === 'error') {
+                        alert(response.message);
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>

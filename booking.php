@@ -165,8 +165,13 @@ if (isset($_GET['trip_id']) && !empty($_GET['trip_id'])) {
                                 <div class="col-md-6">
                                     <label class="small text-muted mb-2">Number of Voyagers</label>
                                     <select name="seats" class="form-select bg-light border-0 py-3">
-                                        <?php for($i=1; $i<=min(10, $trip['persons']); $i++): ?>
-                                            <option value="<?php echo $i; ?>"><?php echo $i; ?> <?php echo $i==1 ? 'Voyager' : 'Voyagers'; ?></option>
+                                        <?php 
+                                        $selected_seats = intval($_GET['seats'] ?? 1);
+                                        for($i=1; $i<=min(10, $trip['persons']); $i++): 
+                                        ?>
+                                            <option value="<?php echo $i; ?>" <?php echo $i == $selected_seats ? 'selected' : ''; ?>>
+                                                <?php echo $i; ?> <?php echo $i==1 ? 'Voyager' : 'Voyagers'; ?>
+                                            </option>
                                         <?php endfor; ?>
                                     </select>
                                 </div>

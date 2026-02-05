@@ -134,26 +134,30 @@ if ($trip_id > 0) {
                 </div>
 
                 <div class="col-lg-4">
-                    <div class="booking-sidebar p-5">
-                        <h3 class="serif-font text-primary mb-3">$<?php echo number_format($trip['budget']); ?></h3>
-                        <p class="text-muted small mb-4">Inclusive of all curated experiences and logistics.</p>
-                        
-                        <div class="d-flex justify-content-between mb-3 border-bottom pb-3">
-                            <span class="text-muted">Duration</span>
-                            <span class="fw-bold"><?php echo $trip['duration_days']; ?> Days</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-3 border-bottom pb-3">
-                            <span class="text-muted">Group Limit</span>
-                            <span class="fw-bold"><?php echo $trip['persons']; ?> Guests</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-4 border-bottom pb-3">
-                            <span class="text-muted">Heritage</span>
-                            <span>
-                                <?php for($i=0; $i<$trip['stars']; $i++) echo '<i class="fas fa-star text-primary small"></i>'; ?>
-                            </span>
-                        </div>
+                        <form action="booking.php" method="GET" class="booking-widget">
+                            <input type="hidden" name="trip_id" value="<?php echo $trip_id; ?>">
+                            
+                            <div class="mb-3">
+                                <label class="small text-muted mb-2">Number of Voyagers</label>
+                                <select name="seats" id="guestCount" class="form-select bg-light border-0 py-3" onchange="updateTotalPrice()">
+                                    <?php for($i=1; $i<=min(10, $trip['persons']); $i++): ?>
+                                        <option value="<?php echo $i; ?>"><?php echo $i; ?> <?php echo $i==1 ? 'Voyager' : 'Voyagers'; ?></option>
+                                    <?php endfor; ?>
+                                </select>
+                            </div>
 
-                        <a href="booking.php?trip_id=<?php echo $trip_id; ?>" class="btn btn-primary w-100 py-4">COMMENCE BOOKING</a>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Unit Price</span>
+                                <span>$<span id="unitPrice"><?php echo number_format($trip['budget']); ?></span></span>
+                            </div>
+                            
+                            <div class="price-display p-3 bg-primary bg-opacity-10 rounded-3 mb-4 text-center">
+                                <h6 class="small text-primary text-uppercase tracking-widest mb-1">Total Expedition Cost</h6>
+                                <h3 class="text-primary fw-bold mb-0">$<span id="totalPriceDisplay"><?php echo number_format($trip['budget']); ?></span></h3>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 py-4 shadow-sm">COMMENCE BOOKING</button>
+                        </form>
                         
                         <div class="mt-4 text-center">
                             <p class="small text-muted mb-0"><i class="fas fa-shield-alt text-primary me-2"></i>Secure Estate Transaction</p>
@@ -163,6 +167,52 @@ if ($trip_id > 0) {
             </div>
         </div>
     </section>
+
+    <!-- Detailed Itinerary Section -->
+    <section class="section-padding bg-light">
+        <div class="container">
+            <h2 class="serif-font text-center mb-5">Expedition Itinerary</h2>
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="itinerary-timeline">
+                        <?php
+                        $itStmt = $con->prepare("SELECT * FROM itinerary WHERE trip_id = ? ORDER BY day_number ASC");
+                        $itStmt->bind_param("i", $trip_id);
+                        $itStmt->execute();
+                        $itRes = $itStmt->get_result();
+                        if ($itRes->num_rows > 0):
+                            while ($day = $itRes->fetch_assoc()):
+                        ?>
+                            <div class="itinerary-item mb-4 d-flex">
+                                <div class="itinerary-day text-primary fw-bold me-4" style="min-width: 60px;">Day <?php echo $day['day_number']; ?></div>
+                                <div class="glass-panel p-4 bg-white shadow-sm flex-grow-1">
+                                    <h5 class="serif-font mb-2"><i class="fas <?php echo $day['activity_icon']; ?> text-primary me-2"></i><?php echo htmlspecialchars($day['activity_title']); ?></h5>
+                                    <p class="text-muted small mb-0"><?php echo htmlspecialchars($day['activity_desc']); ?></p>
+                                </div>
+                            </div>
+                        <?php 
+                            endwhile;
+                        else:
+                        ?>
+                            <div class="p-5 text-center bg-white rounded-4 shadow-sm">
+                                <i class="fas fa-calendar-alt text-muted fa-3x mb-3"></i>
+                                <p class="text-muted mb-0">Our curators are currently drafting the detailed day-by-day plan for this voyage.</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        function updateTotalPrice() {
+            const guestCount = document.getElementById('guestCount').value;
+            const unitPrice = <?php echo $trip['budget']; ?>;
+            const total = guestCount * unitPrice;
+            document.getElementById('totalPriceDisplay').innerText = new Intl.NumberFormat().format(total);
+        }
+    </script>
 
     <footer class="py-5 border-top bg-white mt-5">
         <div class="container text-center">
