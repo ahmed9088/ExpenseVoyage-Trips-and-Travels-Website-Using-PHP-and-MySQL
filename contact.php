@@ -58,25 +58,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contactsubmit'])) {
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(rgba(10, 12, 16, 0.8), rgba(10, 12, 16, 0.8)), 
+            background: linear-gradient(rgba(248, 250, 252, 0.6), rgba(248, 250, 252, 0.7)), 
                         url('img/contact-header.jpg') center/cover no-repeat;
             text-align: center;
         }
 
         .contact-method {
             transition: all 0.4s ease;
+            background: #fff;
+            border: 1px solid var(--glass-border);
         }
 
         .contact-method:hover {
             transform: translateY(-5px);
-            border-color: var(--gold) !important;
+            border-color: var(--primary) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
         }
 
         .contact-icon {
             width: 60px;
             height: 60px;
-            background: rgba(212, 175, 55, 0.1);
-            color: var(--gold);
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--primary);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -87,26 +90,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contactsubmit'])) {
     </style>
 </head>
 <body>
-    <div id="particles-js"></div>
-
-    <nav class="navbar navbar-expand-lg sticky-top glass-panel mx-4 mt-3 py-3">
+    <nav class="navbar navbar-expand-lg sticky-top py-3">
         <div class="container">
             <a href="index.php" class="navbar-brand">
-                <span class="text-gold">Expense</span><span class="text-white">Voyage</span>
+                <span class="text-primary fw-bold">Expense</span><span class="text-dark">Voyage</span>
             </a>
             <div class="navbar-nav ms-auto d-none d-lg-flex">
                 <a class="nav-link px-3" href="index.php">Home</a>
                 <a class="nav-link px-3" href="package.php">Packages</a>
                 <a class="nav-link px-3" href="about.php">About</a>
-                <a class="nav-link px-3 active text-gold" href="contact.php">Contact</a>
+                <a class="nav-link px-3 active" href="contact.php">Contact</a>
             </div>
         </div>
     </nav>
 
     <header class="contact-hero">
         <div class="container">
-            <h6 class="text-gold text-uppercase tracking-widest mb-3 animate__animated animate__fadeIn">Get In Touch</h6>
-            <h1 class="display-3 text-white serif-font animate__animated animate__fadeInUp">We are here for you</h1>
+            <h6 class="text-primary text-uppercase tracking-widest mb-3 animate__animated animate__fadeIn">Get In Touch</h6>
+            <h1 class="display-3 text-dark serif-font animate__animated animate__fadeInUp">We are here for you</h1>
         </div>
     </header>
 
@@ -114,28 +115,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contactsubmit'])) {
         <div class="container">
             <div class="row g-5">
                 <div class="col-lg-4">
-                    <div class="glass-panel p-4 mb-4 contact-method border-secondary">
+                    <div class="glass-panel p-4 mb-4 contact-method animate-on-scroll">
                         <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
-                        <h4>The Atelier</h4>
-                        <p class="text-white-50 small mb-0">123 Luxe Avenue, Dubai Marina<br>United Arab Emirates</p>
+                        <h4 class="h5">The Atelier</h4>
+                        <p class="text-muted small mb-0">123 Luxe Avenue, Dubai Marina<br>United Arab Emirates</p>
                     </div>
-                    <div class="glass-panel p-4 mb-4 contact-method border-secondary">
+                    <div class="glass-panel p-4 mb-4 contact-method animate-on-scroll" data-delay="0.2s">
                         <div class="contact-icon"><i class="fas fa-phone-alt"></i></div>
-                        <h4>Private Line</h4>
-                        <p class="text-white-50 small mb-0">+971 4 555 LUXE<br>Available 24/7 for Elite Members</p>
+                        <h4 class="h5">Private Line</h4>
+                        <p class="text-muted small mb-0">+971 4 555 LUXE<br>Available 24/7 for Elite Members</p>
                     </div>
-                    <div class="glass-panel p-4 contact-method border-secondary">
+                    <div class="glass-panel p-4 contact-method animate-on-scroll" data-delay="0.4s">
                         <div class="contact-icon"><i class="fas fa-envelope"></i></div>
-                        <h4>Inquiries</h4>
-                        <p class="text-white-50 small mb-0">concierge@expensevoyage.com<br>Response within 2 hours</p>
+                        <h4 class="h5">Inquiries</h4>
+                        <p class="text-muted small mb-0">concierge@expensevoyage.com<br>Response within 2 hours</p>
                     </div>
                 </div>
 
                 <div class="col-lg-8">
-                    <div class="glass-panel p-5 h-100">
+                    <div class="glass-panel p-5 h-100 bg-white shadow-sm animate-on-scroll" data-animation="animate__fadeInRight">
                         <h2 class="serif-font mb-4">Send a Message</h2>
                         <?php if (isset($_SESSION['contact_success'])): ?>
-                            <div class="alert alert-success bg-transparent border-gold text-gold mb-4">
+                            <div class="alert alert-success border-0 bg-success-subtle text-success mb-4">
                                 Our concierge has received your request and will contact you shortly.
                             </div>
                             <?php unset($_SESSION['contact_success']); ?>
@@ -144,19 +145,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contactsubmit'])) {
                             <?php echo csrf_input(); ?>
                             <div class="row g-3">
                                 <div class="col-md-6 mb-3">
-                                    <input type="text" name="name" class="form-control bg-transparent text-white border-secondary py-3" placeholder="Full Name" required>
+                                    <input type="text" name="name" class="form-control bg-light border-0 py-3" placeholder="Full Name" required>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <input type="email" name="email" class="form-control bg-transparent text-white border-secondary py-3" placeholder="Email Address" required>
+                                    <input type="email" name="email" class="form-control bg-light border-0 py-3" placeholder="Email Address" required>
                                 </div>
                                 <div class="col-12 mb-3">
-                                    <input type="text" name="subject" class="form-control bg-transparent text-white border-secondary py-3" placeholder="Subject" required>
+                                    <input type="text" name="subject" class="form-control bg-light border-0 py-3" placeholder="Subject" required>
                                 </div>
                                 <div class="col-12 mb-4">
-                                    <textarea name="message" rows="5" class="form-control bg-transparent text-white border-secondary py-3" placeholder="How can we assist you?" required></textarea>
+                                    <textarea name="message" rows="5" class="form-control bg-light border-0 py-3" placeholder="How can we assist you?" required></textarea>
                                 </div>
                                 <div class="col-12 text-end">
-                                    <button type="submit" name="contactsubmit" class="btn btn-primary px-5 py-3 rounded-0">SEND MESSAGE</button>
+                                    <button type="submit" name="contactsubmit" class="btn btn-primary px-5 py-3">SEND MESSAGE</button>
                                 </div>
                             </div>
                         </form>
@@ -166,10 +167,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contactsubmit'])) {
         </div>
     </section>
 
-    <footer class="py-5 border-top border-secondary mt-5">
+    <footer class="py-5 border-top bg-white mt-5">
         <div class="container text-center">
-            <h4 class="text-gold mb-3">ExpenseVoyage</h4>
-            <p class="text-white-50 small mb-0">&copy; 2026 ExpenseVoyage. Crafted for the extraordinary.</p>
+            <h4 class="text-primary mb-3">ExpenseVoyage</h4>
+            <p class="text-muted small mb-0">&copy; 2026 ExpenseVoyage. Crafted for the extraordinary.</p>
         </div>
     </footer>
 

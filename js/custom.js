@@ -1,91 +1,59 @@
 /**
- * ExpenseVoyage - Premium 'Midnight Luxe' Interactions
- * Hand-crafted with cinematic animations and smooth transitions.
+ * ExpenseVoyage - Elegant Light UI Interactions
+ * Refined for speed, simplicity, and an advanced feel.
  */
 
 document.addEventListener('DOMContentLoaded', function () {
-    // 1. Initialize Cinematic Background (Particles)
-    if (document.getElementById('particles-js')) {
-        particlesJS('particles-js', {
-            particles: {
-                number: { value: 60, density: { enable: true, value_area: 1200 } },
-                color: { value: '#d4af37' }, // Gold theme
-                shape: { type: 'circle' },
-                opacity: {
-                    value: 0.3,
-                    random: true,
-                    anim: { enable: true, speed: 0.5, opacity_min: 0.1, sync: false }
-                },
-                size: {
-                    value: 2,
-                    random: true,
-                    anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
-                },
-                line_linked: {
-                    enable: true,
-                    distance: 180,
-                    color: '#d4af37',
-                    opacity: 0.1,
-                    width: 0.5
-                },
-                move: {
-                    enable: true,
-                    speed: 0.8,
-                    direction: 'none',
-                    random: true,
-                    straight: false,
-                    out_mode: 'out',
-                    bounce: false
-                }
-            },
-            interactivity: {
-                detect_on: 'canvas',
-                events: {
-                    onhover: { enable: true, mode: 'bubble' },
-                    onclick: { enable: true, mode: 'push' },
-                    resize: true
-                },
-                modes: {
-                    bubble: { distance: 200, size: 4, duration: 2, opacity: 0.5, speed: 3 },
-                    push: { particles_nb: 3 }
-                }
-            },
-            retina_detect: true
-        });
-    }
+    // 1. Scroll Progress Bar
+    const progressBar = document.createElement('div');
+    progressBar.className = 'scroll-progress';
+    document.body.appendChild(progressBar);
 
-    // 2. Navbar Cinematic Transparency
+    window.addEventListener('scroll', () => {
+        const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+        const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+        const scrolled = (winScroll / height) * 100;
+        progressBar.style.width = scrolled + "%";
+    });
+
+    // 2. Navbar Refinement
     const navbar = document.querySelector('.navbar');
     window.addEventListener('scroll', () => {
         if (window.scrollY > 50) {
-            navbar.classList.add('glass-panel');
+            navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+            navbar.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
             navbar.style.padding = '10px 0';
         } else {
-            navbar.classList.remove('glass-panel');
-            navbar.style.padding = '20px 0';
+            navbar.style.background = 'rgba(248, 250, 252, 0.8)';
+            navbar.style.boxShadow = 'none';
+            navbar.style.padding = '15px 0';
         }
     });
 
-    // 3. Smooth Reveal on Scroll
+    // 3. Sophisticated Reveal on Scroll
     const revealElements = document.querySelectorAll('.animate-on-scroll');
     const revealObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
+                entry.target.style.visibility = 'visible';
                 entry.target.classList.add('animate__animated', entry.target.dataset.animation || 'animate__fadeInUp');
                 revealObserver.unobserve(entry.target);
             }
         });
     }, { threshold: 0.1 });
 
-    revealElements.forEach(el => revealObserver.observe(el));
+    revealElements.forEach(el => {
+        el.style.visibility = 'hidden'; // Hide initially
+        revealObserver.observe(el);
+    });
 
-    // 4. Parallax Hero Effect
+    // 4. Subtle Parallax Hero
     const heroContent = document.querySelector('.hero-section .container');
     window.addEventListener('scroll', () => {
         const scrolled = window.scrollY;
         if (heroContent && scrolled < window.innerHeight) {
-            heroContent.style.transform = `translateY(${scrolled * 0.4}px)`;
-            heroContent.style.opacity = 1 - (scrolled / window.innerHeight);
+            heroContent.style.transform = `translateY(${scrolled * 0.3}px)`;
+            heroContent.style.opacity = 1 - (scrolled / (window.innerHeight * 0.8));
         }
     });
 });

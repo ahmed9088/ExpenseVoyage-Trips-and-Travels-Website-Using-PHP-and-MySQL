@@ -50,41 +50,39 @@ if (isset($_GET['trip_id']) && !empty($_GET['trip_id'])) {
     
     <style>
         .booking-hero {
-            height: 40vh;
+            height: 30vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(rgba(10, 12, 16, 0.8), rgba(10, 12, 16, 0.8)), 
+            background: linear-gradient(rgba(248, 250, 252, 0.6), rgba(248, 250, 252, 0.7)), 
                         url('<?php echo htmlspecialchars($trip['trip_image']); ?>') center/cover no-repeat;
         }
 
         .summary-card {
-            border-left: 4px solid var(--gold);
+            border-left: 4px solid var(--primary);
         }
 
         .booking-form .form-control {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            color: #1e293b;
             padding: 15px;
-            border-radius: 0;
+            border-radius: 8px;
             transition: all 0.3s ease;
         }
 
         .booking-form .form-control:focus {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--gold);
-            box-shadow: none;
+            background: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
         }
     </style>
 </head>
 <body>
-    <div id="particles-js"></div>
-
-    <nav class="navbar navbar-expand-lg sticky-top glass-panel mx-4 mt-3 py-3">
+    <nav class="navbar navbar-expand-lg sticky-top py-3">
         <div class="container">
             <a href="index.php" class="navbar-brand">
-                <span class="text-gold">Expense</span><span class="text-white">Voyage</span>
+                <span class="text-primary fw-bold">Expense</span><span class="text-dark">Voyage</span>
             </a>
             <div class="navbar-nav ms-auto">
                 <a class="nav-link px-3" href="package.php">Back to Packages</a>
@@ -94,8 +92,8 @@ if (isset($_GET['trip_id']) && !empty($_GET['trip_id'])) {
 
     <header class="booking-hero">
         <div class="container text-center">
-            <h1 class="display-3 serif-font text-white animate__animated animate__fadeInDown">Begin Your Voyage</h1>
-            <p class="text-gold tracking-widest text-uppercase animate__animated animate__fadeInUp">Secure Booking Concierge</p>
+            <h1 class="display-3 serif-font text-dark animate__animated animate__fadeInDown">Begin Your Voyage</h1>
+            <p class="text-primary tracking-widest text-uppercase fw-bold animate__animated animate__fadeInUp">Secure Booking Concierge</p>
         </div>
     </header>
 
@@ -104,40 +102,40 @@ if (isset($_GET['trip_id']) && !empty($_GET['trip_id'])) {
             <div class="row g-5">
                 <!-- Trip Summary Sidebar -->
                 <div class="col-lg-4 order-lg-2">
-                    <div class="glass-panel p-4 sticky-top" style="top: 120px;">
+                    <div class="glass-panel p-4 sticky-top bg-white shadow-sm" style="top: 120px;">
                         <h3 class="serif-font mb-4">Voyage Summary</h3>
                         <div class="mb-4">
-                            <img src="<?php echo htmlspecialchars($trip['trip_image']); ?>" class="img-fluid mb-3" alt="Trip">
+                            <img src="<?php echo htmlspecialchars($trip['trip_image']); ?>" class="img-fluid mb-3 rounded-3" alt="Trip">
                             <h4 class="h5"><?php echo htmlspecialchars($trip['trip_name']); ?></h4>
-                            <p class="text-white-50 small mb-0"><i class="fas fa-map-marker-alt text-gold me-2"></i><?php echo htmlspecialchars($trip['destination']); ?></p>
+                            <p class="text-muted small mb-0"><i class="fas fa-map-marker-alt text-primary me-2"></i><?php echo htmlspecialchars($trip['destination']); ?></p>
                         </div>
                         
-                        <hr class="border-secondary">
+                        <hr>
                         
                         <div class="d-flex justify-content-between mb-2">
-                            <span class="text-white-50">Duration</span>
+                            <span class="text-muted">Duration</span>
                             <span><?php echo htmlspecialchars($trip['duration_days']); ?> Days</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
-                            <span class="text-white-50">Base Price</span>
-                            <span class="text-gold fw-bold">$<?php echo number_format($trip['budget']); ?></span>
+                            <span class="text-muted">Base Price</span>
+                            <span class="text-primary fw-bold">$<?php echo number_format($trip['budget']); ?></span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
-                            <span class="text-white-50">Rating</span>
+                            <span class="text-muted">Rating</span>
                             <span>
-                                <?php for($i=0; $i<$trip['stars']; $i++) echo '<i class="fas fa-star text-gold small"></i>'; ?>
+                                <?php for($i=0; $i<$trip['stars']; $i++) echo '<i class="fas fa-star text-primary small"></i>'; ?>
                             </span>
                         </div>
                         
-                        <div class="summary-card bg-white-5 mt-4 p-3">
-                            <p class="small text-white-50 mb-0">"The world is a book and those who do not travel read only one page."</p>
+                        <div class="summary-card bg-light mt-4 p-3">
+                            <p class="small text-muted mb-0">"The world is a book and those who do not travel read only one page."</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Booking Form -->
                 <div class="col-lg-8 order-lg-1">
-                    <div class="glass-panel p-5">
+                    <div class="glass-panel p-5 bg-white shadow-sm border-0">
                         <h2 class="serif-font mb-5">Voyager Credentials</h2>
                         
                         <form action="payment.php" method="GET" class="booking-form">
@@ -145,28 +143,28 @@ if (isset($_GET['trip_id']) && !empty($_GET['trip_id'])) {
                             
                             <div class="row g-4">
                                 <div class="col-12">
-                                    <label class="small text-white-50 mb-2">Full Name</label>
+                                    <label class="small text-muted mb-2">Full Name</label>
                                     <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars($_SESSION['name'] ?? ''); ?>" required>
                                 </div>
                                 
                                 <div class="col-md-6">
-                                    <label class="small text-white-50 mb-2">Email Identity</label>
+                                    <label class="small text-muted mb-2">Email Identity</label>
                                     <input type="email" name="email" class="form-control" value="<?php echo htmlspecialchars($_SESSION['email'] ?? ''); ?>" required>
                                 </div>
                                 
                                 <div class="col-md-6">
-                                    <label class="small text-white-50 mb-2">Contact Telephony</label>
+                                    <label class="small text-muted mb-2">Contact Telephony</label>
                                     <input type="tel" name="phone" class="form-control" placeholder="+X XXX XXX XXXX" required>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="small text-white-50 mb-2">Commencement Date</label>
+                                    <label class="small text-muted mb-2">Commencement Date</label>
                                     <input type="date" name="start_date" class="form-control" value="<?php echo $trip['starts_date']; ?>" readonly>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="small text-white-50 mb-2">Number of Voyagers</label>
-                                    <select name="seats" class="form-select bg-dark border-secondary text-white py-3 rounded-0">
+                                    <label class="small text-muted mb-2">Number of Voyagers</label>
+                                    <select name="seats" class="form-select bg-light border-0 py-3">
                                         <?php for($i=1; $i<=min(10, $trip['persons']); $i++): ?>
                                             <option value="<?php echo $i; ?>"><?php echo $i; ?> <?php echo $i==1 ? 'Voyager' : 'Voyagers'; ?></option>
                                         <?php endfor; ?>
@@ -174,19 +172,19 @@ if (isset($_GET['trip_id']) && !empty($_GET['trip_id'])) {
                                 </div>
 
                                 <div class="col-12">
-                                    <label class="small text-white-50 mb-2">Special Requests (Optional)</label>
+                                    <label class="small text-muted mb-2">Special Requests (Optional)</label>
                                     <textarea name="notes" rows="4" class="form-control" placeholder="Any dietary requirements or special occasions?"></textarea>
                                 </div>
 
                                 <div class="col-12 mt-5">
-                                    <div class="d-flex align-items-center mb-4 p-3 bg-white-5 border border-secondary">
-                                        <i class="fas fa-shield-halved text-gold fa-2x me-3"></i>
+                                    <div class="d-flex align-items-center mb-4 p-3 bg-light rounded-3">
+                                        <i class="fas fa-shield-halved text-primary fa-2x me-3"></i>
                                         <div>
                                             <h6 class="mb-1">Secure Encryption Active</h6>
-                                            <p class="small text-white-50 mb-0">Your data is protected by industry-leading 256-bit SSL encryption.</p>
+                                            <p class="small text-muted mb-0">Your data is protected by industry-leading 256-bit SSL encryption.</p>
                                         </div>
                                     </div>
-                                    <button type="submit" class="btn btn-primary w-100 py-4 tracking-widest">PROCEED TO SECURE PAYMENT</button>
+                                    <button type="submit" class="btn btn-primary w-100 py-4">PROCEED TO SECURE PAYMENT</button>
                                 </div>
                             </div>
                         </form>
@@ -196,10 +194,10 @@ if (isset($_GET['trip_id']) && !empty($_GET['trip_id'])) {
         </div>
     </section>
 
-    <footer class="py-5 border-top border-secondary mt-5">
+    <footer class="py-5 border-top bg-white mt-5">
         <div class="container text-center">
-            <h4 class="text-gold mb-3">ExpenseVoyage</h4>
-            <p class="text-white-50 small mb-0">&copy; 2026 ExpenseVoyage. Luxury Reimagined.</p>
+            <h4 class="text-primary mb-3">ExpenseVoyage</h4>
+            <p class="text-muted small mb-0">&copy; 2026 ExpenseVoyage. Luxury Reimagined.</p>
         </div>
     </footer>
 

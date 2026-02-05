@@ -69,13 +69,12 @@ $agentResult = mysqli_query($con, "SELECT * FROM agent");
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(rgba(10, 12, 16, 0.8), rgba(10, 12, 16, 0.8)), 
+            background: linear-gradient(rgba(248, 250, 252, 0.6), rgba(248, 250, 252, 0.7)), 
                         url('img/about-bg.jpg') center/cover no-repeat;
             text-align: center;
         }
 
         .agent-card {
-            transition: all 0.4s ease;
             text-align: center;
         }
 
@@ -84,7 +83,7 @@ $agentResult = mysqli_query($con, "SELECT * FROM agent");
             height: 150px;
             object-fit: cover;
             border-radius: 50%;
-            border: 3px solid var(--gold);
+            border: 3px solid var(--primary);
             margin-bottom: 20px;
         }
 
@@ -92,20 +91,22 @@ $agentResult = mysqli_query($con, "SELECT * FROM agent");
             max-width: 600px;
             margin: 0 auto;
         }
+        
+        .hover-gold:hover {
+            color: var(--primary) !important;
+        }
     </style>
 </head>
 <body>
-    <div id="particles-js"></div>
-
-    <nav class="navbar navbar-expand-lg sticky-top glass-panel mx-4 mt-3 py-3">
+    <nav class="navbar navbar-expand-lg sticky-top py-3">
         <div class="container">
             <a href="index.php" class="navbar-brand">
-                <span class="text-gold">Expense</span><span class="text-white">Voyage</span>
+                <span class="text-primary fw-bold">Expense</span><span class="text-dark">Voyage</span>
             </a>
             <div class="navbar-nav ms-auto d-none d-lg-flex">
                 <a class="nav-link px-3" href="index.php">Home</a>
                 <a class="nav-link px-3" href="package.php">Packages</a>
-                <a class="nav-link px-3 active text-gold" href="about.php">About</a>
+                <a class="nav-link px-3 active" href="about.php">About</a>
                 <a class="nav-link px-3" href="contact.php">Contact</a>
             </div>
         </div>
@@ -113,73 +114,68 @@ $agentResult = mysqli_query($con, "SELECT * FROM agent");
 
     <header class="about-hero">
         <div class="container">
-            <h6 class="text-gold text-uppercase tracking-widest mb-3 animate__animated animate__fadeIn">The Legacy</h6>
-            <h1 class="display-3 text-white serif-font animate__animated animate__fadeInUp">Crafting Memories</h1>
+            <h6 class="text-primary text-uppercase tracking-widest mb-3 animate__animated animate__fadeIn">The Legacy</h6>
+            <h1 class="display-3 text-dark serif-font animate__animated animate__fadeInUp">Crafting Memories</h1>
         </div>
     </header>
 
     <section class="py-5">
         <div class="container">
             <div class="row align-items-center mb-5">
-                <div class="col-lg-6 mb-4 mb-lg-0">
-                    <img src="img/about-side.jpg" class="img-fluid glass-panel p-2" alt="About">
+                <div class="col-lg-6 mb-4 mb-lg-0 animate-on-scroll">
+                    <img src="img/about-side.jpg" class="img-fluid glass-panel p-2 shadow-sm" alt="About">
                 </div>
-                <div class="col-lg-6 ps-lg-5">
+                <div class="col-lg-6 ps-lg-5 animate-on-scroll" data-animation="animate__fadeInRight">
                     <h2 class="serif-font mb-4">Our Commitment</h2>
-                    <p class="text-white-50">ExpenseVoyage was founded on the principle that travel should be more than just visiting a place—it should be a soul-stirring experience. We curate high-end journeys for those who seek the extraordinary.</p>
-                    <p class="text-white-50">From luxury villas in the Mediterranean to private safaris in the Serengeti, every detail is hand-picked by our experts.</p>
+                    <p class="text-muted">ExpenseVoyage was founded on the principle that travel should be more than just visiting a place—it should be a soul-stirring experience. We curate high-end journeys for those who seek the extraordinary.</p>
+                    <p class="text-muted">From luxury villas in the Mediterranean to private safaris in the Serengeti, every detail is hand-picked by our experts.</p>
                 </div>
             </div>
 
             <div class="row g-4 mt-5">
-                <div class="col-md-4 text-center">
-                    <div class="glass-panel p-4 h-100">
-                        <i class="fas fa-award text-gold fa-3x mb-3"></i>
+                <div class="col-md-4 text-center animate-on-scroll">
+                    <div class="glass-panel p-4 h-100 bg-white shadow-sm">
+                        <i class="fas fa-award text-primary fa-3x mb-3"></i>
                         <h4 class="mb-2">Quality First</h4>
-                        <p class="small text-white-50 mb-0">We partner only with the finest luxury providers.</p>
+                        <p class="small text-muted mb-0">We partner only with the finest luxury providers.</p>
                     </div>
                 </div>
-                <div class="col-md-4 text-center">
-                    <div class="glass-panel p-4 h-100">
-                        <i class="fas fa-globe-americas text-gold fa-3x mb-3"></i>
+                <div class="col-md-4 text-center animate-on-scroll" data-animation="animate__fadeInUp" data-delay="0.2s">
+                    <div class="glass-panel p-4 h-100 bg-white shadow-sm">
+                        <i class="fas fa-globe-americas text-primary fa-3x mb-3"></i>
                         <h4 class="mb-2">Global Reach</h4>
-                        <p class="small text-white-50 mb-0">Experience the world without boundaries.</p>
+                        <p class="small text-muted mb-0">Experience the world without boundaries.</p>
                     </div>
                 </div>
-                <div class="col-md-4 text-center">
-                    <div class="glass-panel p-4 h-100">
-                        <i class="fas fa-heart text-gold fa-3x mb-3"></i>
+                <div class="col-md-4 text-center animate-on-scroll" data-animation="animate__fadeInUp" data-delay="0.4s">
+                    <div class="glass-panel p-4 h-100 bg-white shadow-sm">
+                        <i class="fas fa-heart text-primary fa-3x mb-3"></i>
                         <h4 class="mb-2">Personal Touch</h4>
-                        <p class="small text-white-50 mb-0">Hand-crafted itineraries tailored to you.</p>
+                        <p class="small text-muted mb-0">Hand-crafted itineraries tailored to you.</p>
                     </div>
                 </div>
             </div>
 
             <!-- Dynamic Agents Section -->
             <div class="mt-5 pt-5">
-                <h2 class="serif-font text-center mb-5">Our Curators</h2>
+                <h2 class="serif-font text-center mb-5 animate-on-scroll">Our Curators</h2>
                 <div class="row g-4">
                     <?php if (mysqli_num_rows($agentResult) > 0): ?>
                         <?php while($agent = mysqli_fetch_assoc($agentResult)): ?>
-                            <div class="col-lg-3 col-md-6">
-                                <div class="agent-card glass-panel p-4 h-100">
+                            <div class="col-lg-3 col-md-6 animate-on-scroll">
+                                <div class="agent-card glass-panel p-4 h-100 bg-white">
                                     <img src="admin/user/<?php echo htmlspecialchars($agent['a_image']); ?>" alt="Agent" class="mb-3">
                                     <h4 class="h5 mb-1"><?php echo htmlspecialchars($agent['a_name']); ?></h4>
-                                    <p class="text-gold small text-uppercase tracking-widest mb-3"><?php echo htmlspecialchars($agent['a_profetion']); ?></p>
+                                    <p class="text-primary small text-uppercase tracking-widest mb-3"><?php echo htmlspecialchars($agent['a_profetion']); ?></p>
                                     <div class="d-flex justify-content-center gap-3">
-                                        <?php if (!empty($agent['aemail'])): ?>
-                                            <a href="mailto:<?php echo htmlspecialchars($agent['aemail']); ?>" class="text-white-50 hover-gold"><i class="fas fa-envelope"></i></a>
-                                        <?php endif; ?>
-                                        <?php if (!empty($agent['aphone'])): ?>
-                                            <a href="tel:<?php echo htmlspecialchars($agent['aphone']); ?>" class="text-white-50 hover-gold"><i class="fas fa-phone"></i></a>
-                                        <?php endif; ?>
+                                        <a href="contact.php" class="btn btn-outline-primary btn-sm rounded-pill px-3">Consult Now</a>
                                     </div>
                                 </div>
                             </div>
                         <?php endwhile; ?>
                     <?php else: ?>
                         <div class="col-12 text-center">
-                            <p class="text-white-50">Our curators are currently exploring new horizons.</p>
+                            <p class="text-muted">Our curators are currently exploring new horizons.</p>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -188,26 +184,26 @@ $agentResult = mysqli_query($con, "SELECT * FROM agent");
     </section>
 
     <!-- Share Your Experience -->
-    <section class="py-5 bg-dark">
+    <section class="py-5 bg-light">
         <div class="container">
-            <div class="review-form-wrap glass-panel p-5">
+            <div class="review-form-wrap mx-auto bg-white p-5 rounded-4 shadow-sm animate-on-scroll">
                 <h2 class="serif-font text-center mb-4">Leave a Legacy</h2>
                 <?php if (isset($_SESSION['review_submitted'])): ?>
-                    <div class="alert alert-success bg-transparent border-gold text-gold text-center">
+                    <div class="alert alert-success border-0 bg-success-subtle text-success text-center">
                         Thank you for sharing your journey with us.
                     </div>
                     <?php unset($_SESSION['review_submitted']); ?>
                 <?php endif; ?>
                 <form action="about.php" method="POST" enctype="multipart/form-data">
                     <div class="mb-3">
-                        <input type="email" name="useremail" class="form-control bg-transparent text-white border-secondary" placeholder="Your Email" required>
+                        <input type="email" name="useremail" class="form-control bg-light border-0 py-3" placeholder="Your Email" required>
                     </div>
                     <div class="mb-3">
-                        <textarea name="usermessage" rows="4" class="form-control bg-transparent text-white border-secondary" placeholder="Tell us about your journey..." required></textarea>
+                        <textarea name="usermessage" rows="4" class="form-control bg-light border-0 py-3" placeholder="Tell us about your journey..." required></textarea>
                     </div>
                     <div class="mb-4">
-                        <label class="small text-white-50 mb-2">A memory (photo)</label>
-                        <input type="file" name="profile" class="form-control bg-transparent text-white border-secondary" accept="image/*" required>
+                        <label class="small text-muted mb-2">A memory (photo)</label>
+                        <input type="file" name="profile" class="form-control bg-light border-0" accept="image/*" required>
                     </div>
                     <button type="submit" name="sendreview" class="btn btn-primary w-100 py-3">SUBMIT REVIEW</button>
                 </form>
@@ -215,10 +211,10 @@ $agentResult = mysqli_query($con, "SELECT * FROM agent");
         </div>
     </section>
 
-    <footer class="py-5 border-top border-secondary mt-5">
+    <footer class="py-5 border-top bg-white">
         <div class="container text-center">
-            <h4 class="text-gold mb-3">ExpenseVoyage</h4>
-            <p class="text-white-50 small mb-0">&copy; 2026 ExpenseVoyage. Crafted for the extraordinary.</p>
+            <h4 class="text-primary mb-3">ExpenseVoyage</h4>
+            <p class="text-muted small mb-0">&copy; 2026 ExpenseVoyage. Crafted for the extraordinary.</p>
         </div>
     </footer>
 

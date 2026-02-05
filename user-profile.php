@@ -92,11 +92,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     <style>
         .profile-hero {
-            height: 40vh;
+            height: 30vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(rgba(10, 12, 16, 0.9), rgba(10, 12, 16, 0.9)), 
+            background: linear-gradient(rgba(248, 250, 252, 0.8), rgba(248, 250, 252, 0.9)), 
                         url('img/profile-bg.jpg') center/cover no-repeat;
         }
 
@@ -112,17 +112,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             height: 150px;
             object-fit: cover;
             border-radius: 50%;
-            border: 4px solid var(--gold);
+            border: 4px solid var(--primary);
             padding: 5px;
-            background: var(--bg-dark);
+            background: #fff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
 
         .cam-btn {
             position: absolute;
             bottom: 5px;
             right: 5px;
-            background: var(--gold-gradient);
-            color: black;
+            background: var(--primary);
+            color: white;
             width: 40px;
             height: 40px;
             border-radius: 50%;
@@ -130,17 +131,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            border: 2px solid var(--bg-dark);
+            border: 2px solid #fff;
+            transition: all 0.3s ease;
         }
+        
+        .cam-btn:hover {
+            background: #4338ca;
+            transform: scale(1.1);
+        }
+        
+        .mt-n5 { margin-top: -3rem !important; }
     </style>
 </head>
 <body>
-    <div id="particles-js"></div>
-
-    <nav class="navbar navbar-expand-lg sticky-top glass-panel mx-4 mt-3 py-3">
+    <nav class="navbar navbar-expand-lg sticky-top py-3">
         <div class="container">
             <a href="index.php" class="navbar-brand">
-                <span class="text-gold">Expense</span><span class="text-white">Voyage</span>
+                <span class="text-primary fw-bold">Expense</span><span class="text-dark">Voyage</span>
             </a>
             <div class="navbar-nav ms-auto">
                 <a class="nav-link px-3" href="index.php">Return to Home</a>
@@ -152,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <section class="pb-5">
         <div class="container">
-            <div class="glass-panel p-5 mt-n5 position-relative">
+            <div class="glass-panel p-5 mt-n5 position-relative bg-white shadow-lg border-0 animate__animated animate__fadeIn">
                 <div class="avatar-wrap">
                     <img src="<?php echo $user['profile_image'] ? 'img/profiles/'.$user['profile_image'] : 'img/default.jpg'; ?>" class="avatar-main" alt="Avatar">
                     <label for="profile_image" class="cam-btn"><i class="fas fa-camera"></i></label>
@@ -160,11 +167,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 <div class="text-center mb-5">
                     <h2 class="serif-font mb-0"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></h2>
-                    <p class="text-gold small tracking-widest text-uppercase"><?php echo $user['is_verified'] ? 'Verified Voyager' : 'New Client'; ?></p>
+                    <p class="text-primary small tracking-widest text-uppercase fw-bold"><?php echo $user['is_verified'] ? 'Verified Voyager' : 'New Client'; ?></p>
                 </div>
 
                 <?php if (isset($_GET['success'])): ?>
-                    <div class="alert alert-success bg-transparent border-gold text-gold text-center mb-4">
+                    <div class="alert alert-success border-0 bg-success-subtle text-success text-center mb-4">
                         Profile credentials synchronized successfully.
                     </div>
                 <?php endif; ?>
@@ -174,28 +181,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <input type="file" name="profile_image" id="profile_image" class="d-none">
                     <div class="row g-4">
                         <div class="col-md-6">
-                            <label class="small text-white-50 mb-2">First Name</label>
-                            <input type="text" name="first_name" value="<?php echo htmlspecialchars($user['first_name']); ?>" class="form-control bg-transparent text-white border-secondary">
+                            <label class="small text-muted mb-2">First Name</label>
+                            <input type="text" name="first_name" value="<?php echo htmlspecialchars($user['first_name']); ?>" class="form-control bg-light border-0 py-3">
                         </div>
                         <div class="col-md-6">
-                            <label class="small text-white-50 mb-2">Last Name</label>
-                            <input type="text" name="last_name" value="<?php echo htmlspecialchars($user['last_name']); ?>" class="form-control bg-transparent text-white border-secondary">
+                            <label class="small text-muted mb-2">Last Name</label>
+                            <input type="text" name="last_name" value="<?php echo htmlspecialchars($user['last_name']); ?>" class="form-control bg-light border-0 py-3">
                         </div>
                         <div class="col-12">
-                            <label class="small text-white-50 mb-2">Email Address</label>
-                            <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control bg-transparent text-white border-secondary">
+                            <label class="small text-muted mb-2">Email Address</label>
+                            <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control bg-light border-0 py-3">
                         </div>
                         
-                        <hr class="border-secondary my-4">
-                        <h5 class="serif-font mb-3">Security & Recovery</h5>
-                        
-                        <div class="col-md-6">
-                            <label class="small text-white-50 mb-2">New Password (leave blank to keep current)</label>
-                            <input type="password" name="password" class="form-control bg-transparent text-white border-secondary">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="small text-white-50 mb-2">Current Password (required for changes)</label>
-                            <input type="password" name="old_password" class="form-control bg-transparent text-white border-secondary">
+                        <div class="col-12 mt-5">
+                            <h5 class="serif-font mb-3">Security & Recovery</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="small text-muted mb-2">New Password (leave blank to keep current)</label>
+                                    <input type="password" name="password" class="form-control bg-light border-0 py-3">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="small text-muted mb-2">Current Password (required for changes)</label>
+                                    <input type="password" name="old_password" class="form-control bg-light border-0 py-3">
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="col-12 text-center mt-5">
@@ -207,10 +216,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
     </section>
 
-    <footer class="py-5 border-top border-secondary mt-5">
+    <footer class="py-5 border-top bg-white mt-5">
         <div class="container text-center">
-            <h4 class="text-gold mb-3">ExpenseVoyage</h4>
-            <p class="text-white-50 small mb-0">&copy; 2026 ExpenseVoyage. Crafted for the extraordinary.</p>
+            <h4 class="text-primary mb-3">ExpenseVoyage</h4>
+            <p class="text-muted small mb-0">&copy; 2026 ExpenseVoyage. Crafted for the extraordinary.</p>
         </div>
     </footer>
 

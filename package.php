@@ -41,21 +41,16 @@ $trips_result = mysqli_query($con, $query);
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(rgba(10, 12, 16, 0.8), rgba(10, 12, 16, 0.8)), 
+            background: linear-gradient(rgba(248, 250, 252, 0.6), rgba(248, 250, 252, 0.7)), 
                         url('img/packages-bg.jpg') center/cover no-repeat;
             text-align: center;
         }
 
         .trip-card {
-            transition: all 0.4s ease;
             border: none;
-            background: var(--bg-card);
+            background: #fff;
             overflow: hidden;
-        }
-
-        .trip-card:hover {
-            transform: translateY(-10px);
-            border: 1px solid var(--gold);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         }
 
         .trip-img-wrap {
@@ -79,27 +74,24 @@ $trips_result = mysqli_query($con, $query);
             position: absolute;
             top: 20px;
             right: 20px;
-            background: var(--gold-gradient);
-            color: black;
-            padding: 8px 15px;
+            background: var(--primary);
+            color: white;
+            padding: 8px 20px;
             font-weight: 800;
-            border-radius: 0;
-            clip-path: polygon(0 0, 100% 0, 100% 100%, 15% 100%);
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
         }
     </style>
 </head>
 <body>
-    <div id="particles-js"></div>
-
-    <!-- Navigation (Simplified for subpages) -->
-    <nav class="navbar navbar-expand-lg sticky-top glass-panel mx-4 mt-3 py-3">
+    <nav class="navbar navbar-expand-lg sticky-top py-3">
         <div class="container">
             <a href="index.php" class="navbar-brand">
-                <span class="text-gold">Expense</span><span class="text-white">Voyage</span>
+                <span class="text-primary fw-bold">Expense</span><span class="text-dark">Voyage</span>
             </a>
             <div class="navbar-nav ms-auto d-none d-lg-flex">
                 <a class="nav-link px-3" href="index.php">Home</a>
-                <a class="nav-link px-3 active text-gold" href="package.php">Packages</a>
+                <a class="nav-link px-3 active" href="package.php">Packages</a>
                 <a class="nav-link px-3" href="about.php">About</a>
                 <a class="nav-link px-3" href="contact.php">Contact</a>
             </div>
@@ -109,8 +101,8 @@ $trips_result = mysqli_query($con, $query);
     <!-- Page Hero -->
     <header class="page-hero">
         <div class="container">
-            <h6 class="text-gold text-uppercase tracking-widest mb-3 animate__animated animate__fadeIn">Curated Collections</h6>
-            <h1 class="display-3 text-white serif-font animate__animated animate__fadeInUp">Bespoke Journeys</h1>
+            <h6 class="text-primary text-uppercase tracking-widest mb-3 animate__animated animate__fadeIn">Curated Collections</h6>
+            <h1 class="display-3 text-dark serif-font animate__animated animate__fadeInUp">Bespoke Journeys</h1>
         </div>
     </header>
 
@@ -127,12 +119,12 @@ $trips_result = mysqli_query($con, $query);
                                     <div class="price-tag">$<?php echo number_format($trip['budget']); ?></div>
                                 </div>
                                 <div class="p-4">
-                                    <h3 class="h5 mb-3"><?php echo htmlspecialchars($trip['trip_name']); ?></h3>
-                                    <div class="d-flex gap-3 mb-4 small text-white-50">
-                                        <span><i class="far fa-calendar me-1 text-gold"></i> <?php echo $trip['duration_days']; ?> Days</span>
-                                        <span><i class="far fa-user me-1 text-gold"></i> <?php echo $trip['persons']; ?> Guests</span>
+                                    <h3 class="serif-font h5 mb-3"><?php echo htmlspecialchars($trip['trip_name']); ?></h3>
+                                    <div class="d-flex gap-3 mb-4 small text-muted">
+                                        <span><i class="far fa-calendar me-1 text-primary"></i> <?php echo $trip['duration_days']; ?> Days</span>
+                                        <span><i class="far fa-user me-1 text-primary"></i> <?php echo $trip['persons']; ?> Guests</span>
                                     </div>
-                                    <a href="trip_details.php?id=<?php echo $trip['trip_id']; ?>" class="btn btn-primary w-100 rounded-0 py-3">VIEW DETAILS</a>
+                                    <a href="trip_details.php?id=<?php echo $trip['trip_id']; ?>" class="btn btn-primary w-100 py-3">VIEW DETAILS</a>
                                 </div>
                             </div>
                         </div>
@@ -148,10 +140,10 @@ $trips_result = mysqli_query($con, $query);
     </section>
 
     <!-- Footer (Standardized) -->
-    <footer class="py-5 border-top border-secondary mt-5">
+    <footer class="py-5 border-top bg-white mt-5">
         <div class="container text-center">
-            <h4 class="text-gold mb-3">ExpenseVoyage</h4>
-            <p class="text-white-50 small mb-0">&copy; 2026 ExpenseVoyage. Crafted for the extraordinary.</p>
+            <h4 class="text-primary mb-3">ExpenseVoyage</h4>
+            <p class="text-muted small mb-0">&copy; 2026 ExpenseVoyage. Crafted for the extraordinary.</p>
         </div>
     </footer>
 

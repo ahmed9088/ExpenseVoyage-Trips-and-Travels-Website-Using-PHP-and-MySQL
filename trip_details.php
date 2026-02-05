@@ -46,23 +46,25 @@ if ($trip_id > 0) {
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(rgba(10, 12, 16, 0.6), rgba(10, 12, 16, 0.6)), 
+            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), 
                         url('<?php echo htmlspecialchars($trip['trip_image']); ?>') center/cover no-repeat;
             text-align: center;
         }
 
         .booking-sidebar {
-            background: var(--bg-card);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #fff;
+            border: 1px solid var(--glass-border);
             position: sticky;
             top: 100px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
         }
 
         .amenity-icon {
             width: 50px;
             height: 50px;
-            background: rgba(212, 175, 55, 0.1);
-            color: var(--gold);
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--primary);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -72,12 +74,10 @@ if ($trip_id > 0) {
     </style>
 </head>
 <body>
-    <div id="particles-js"></div>
-
-    <nav class="navbar navbar-expand-lg sticky-top glass-panel mx-4 mt-3 py-3">
+    <nav class="navbar navbar-expand-lg sticky-top py-3">
         <div class="container">
             <a href="index.php" class="navbar-brand">
-                <span class="text-gold">Expense</span><span class="text-white">Voyage</span>
+                <span class="text-primary fw-bold">Expense</span><span class="text-dark">Voyage</span>
             </a>
             <div class="navbar-nav ms-auto">
                 <a class="nav-link px-3" href="package.php">Return to Collection</a>
@@ -87,7 +87,7 @@ if ($trip_id > 0) {
 
     <header class="details-hero">
         <div class="container">
-            <h6 class="text-gold text-uppercase tracking-widest mb-3 animate__animated animate__fadeIn">Luxury Expedition</h6>
+            <h6 class="text-white text-uppercase tracking-widest mb-3 animate__animated animate__fadeIn">Luxury Expedition</h6>
             <h1 class="display-2 text-white serif-font animate__animated animate__fadeInUp"><?php echo htmlspecialchars($trip['trip_name']); ?></h1>
         </div>
     </header>
@@ -96,37 +96,37 @@ if ($trip_id > 0) {
         <div class="container">
             <div class="row g-5">
                 <div class="col-lg-8">
-                    <div class="glass-panel p-5">
+                    <div class="glass-panel p-5 bg-white shadow-sm">
                         <h2 class="serif-font mb-4">Voyage Narrative</h2>
-                        <p class="text-white-50 lead mb-5"><?php echo nl2br(htmlspecialchars($trip['description'])); ?></p>
+                        <p class="text-muted lead mb-5"><?php echo nl2br(htmlspecialchars($trip['description'])); ?></p>
                         
                         <h4 class="serif-font mb-4">Key Inclusions</h4>
                         <div class="row g-4 mb-5">
                             <div class="col-md-3 text-center">
                                 <div class="amenity-icon mx-auto"><i class="fas fa-hotel"></i></div>
-                                <p class="small text-white-50">Luxury Villa</p>
+                                <p class="small text-muted">Luxury Villa</p>
                             </div>
                             <div class="col-md-3 text-center">
                                 <div class="amenity-icon mx-auto"><i class="fas fa-utensils"></i></div>
-                                <p class="small text-white-50">Private Chef</p>
+                                <p class="small text-muted">Private Chef</p>
                             </div>
                             <div class="col-md-3 text-center">
                                 <div class="amenity-icon mx-auto"><i class="fas fa-shuttle-van"></i></div>
-                                <p class="small text-white-50">Private Concierge</p>
+                                <p class="small text-muted">Private Concierge</p>
                             </div>
                             <div class="col-md-3 text-center">
                                 <div class="amenity-icon mx-auto"><i class="fas fa-camera-retro"></i></div>
-                                <p class="small text-white-50">Memoir Service</p>
+                                <p class="small text-muted">Memoir Service</p>
                             </div>
                         </div>
 
                         <?php if (isset($trip['vehicle_type'])): ?>
                             <h4 class="serif-font mb-4">Travel Logistics</h4>
-                            <div class="p-4 bg-white-5 border border-secondary d-flex align-items-center mb-5">
-                                <img src="img/vehicle-thumb.jpg" class="me-4" style="width: 150px;" alt="Vehicle">
+                            <div class="p-4 bg-light border-0 d-flex align-items-center mb-5 rounded-3">
+                                <img src="img/vehicle-thumb.jpg" class="me-4 rounded-2" style="width: 150px;" alt="Vehicle">
                                 <div>
-                                    <h5 class="mb-1 text-gold"><?php echo htmlspecialchars($trip['vehicle_type']); ?></h5>
-                                    <p class="small text-white-50 mb-0"><?php echo htmlspecialchars($trip['vehicle_features'] ?? 'Premium logistics for ultimate comfort.'); ?></p>
+                                    <h5 class="mb-1 text-primary"><?php echo htmlspecialchars($trip['vehicle_type']); ?></h5>
+                                    <p class="small text-muted mb-0"><?php echo htmlspecialchars($trip['vehicle_features'] ?? 'Premium logistics for ultimate comfort.'); ?></p>
                                 </div>
                             </div>
                         <?php endif; ?>
@@ -134,29 +134,29 @@ if ($trip_id > 0) {
                 </div>
 
                 <div class="col-lg-4">
-                    <div class="booking-sidebar glass-panel p-5">
-                        <h3 class="serif-font text-gold mb-3">$<?php echo number_format($trip['budget']); ?></h3>
-                        <p class="text-white-50 small mb-4">Inclusive of all curated experiences and logistics.</p>
+                    <div class="booking-sidebar p-5">
+                        <h3 class="serif-font text-primary mb-3">$<?php echo number_format($trip['budget']); ?></h3>
+                        <p class="text-muted small mb-4">Inclusive of all curated experiences and logistics.</p>
                         
-                        <div class="d-flex justify-content-between mb-3 border-bottom border-secondary pb-3">
-                            <span class="text-white-50">Duration</span>
+                        <div class="d-flex justify-content-between mb-3 border-bottom pb-3">
+                            <span class="text-muted">Duration</span>
                             <span class="fw-bold"><?php echo $trip['duration_days']; ?> Days</span>
                         </div>
-                        <div class="d-flex justify-content-between mb-3 border-bottom border-secondary pb-3">
-                            <span class="text-white-50">Group Limit</span>
+                        <div class="d-flex justify-content-between mb-3 border-bottom pb-3">
+                            <span class="text-muted">Group Limit</span>
                             <span class="fw-bold"><?php echo $trip['persons']; ?> Guests</span>
                         </div>
-                        <div class="d-flex justify-content-between mb-4 border-bottom border-secondary pb-3">
-                            <span class="text-white-50">Heritage</span>
+                        <div class="d-flex justify-content-between mb-4 border-bottom pb-3">
+                            <span class="text-muted">Heritage</span>
                             <span>
-                                <?php for($i=0; $i<$trip['stars']; $i++) echo '<i class="fas fa-star text-gold small"></i>'; ?>
+                                <?php for($i=0; $i<$trip['stars']; $i++) echo '<i class="fas fa-star text-primary small"></i>'; ?>
                             </span>
                         </div>
 
-                        <a href="booking.php?trip_id=<?php echo $trip_id; ?>" class="btn btn-primary w-100 py-4 tracking-widest">COMMENCE BOOKING</a>
+                        <a href="booking.php?trip_id=<?php echo $trip_id; ?>" class="btn btn-primary w-100 py-4">COMMENCE BOOKING</a>
                         
                         <div class="mt-4 text-center">
-                            <p class="small text-white-50 mb-0"><i class="fas fa-shield-alt text-gold me-2"></i>Secure Estate Transaction</p>
+                            <p class="small text-muted mb-0"><i class="fas fa-shield-alt text-primary me-2"></i>Secure Estate Transaction</p>
                         </div>
                     </div>
                 </div>
@@ -164,10 +164,10 @@ if ($trip_id > 0) {
         </div>
     </section>
 
-    <footer class="py-5 border-top border-secondary mt-5">
+    <footer class="py-5 border-top bg-white mt-5">
         <div class="container text-center">
-            <h4 class="text-gold mb-3">ExpenseVoyage</h4>
-            <p class="text-white-50 small mb-0">&copy; 2026 ExpenseVoyage. Crafted for Elegance.</p>
+            <h4 class="text-primary mb-3">ExpenseVoyage</h4>
+            <p class="text-muted small mb-0">&copy; 2026 ExpenseVoyage. Crafted for Elegance.</p>
         </div>
     </footer>
 

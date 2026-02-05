@@ -1,14 +1,18 @@
-/* Midnight Luxe Design System */
+/* Light & Elegant Design System */
 :root {
-    --bg-dark: #0a0c10;
-    --bg-card: rgba(20, 24, 32, 0.7);
-    --primary: #4361ee;
-    --gold: #d4af37;
-    --gold-gradient: linear-gradient(135deg, #d4af37, #f1d592);
-    --text-main: #f5f7ff;
-    --text-muted: rgba(245, 247, 255, 0.6);
-    --glass: rgba(255, 255, 255, 0.05);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --bg-light: #f8fafc;
+    --bg-card: #ffffff;
+    --primary: #4f46e5;
+    /* Indigo 600 */
+    --gold: #b59410;
+    --gold-gradient: linear-gradient(135deg, #b59410, #e2c14d);
+    --text-main: #0f172a;
+    /* Slate 900 */
+    --text-muted: #64748b;
+    /* Slate 500 */
+    --glass: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(0, 0, 0, 0.05);
+    --accent: #4f46e5;
 }
 
 /* Base Reset & Core Styles */
@@ -21,7 +25,7 @@
 body {
     font-family: 'Outfit', sans-serif;
     color: var(--text-main);
-    background-color: var(--bg-dark);
+    background-color: var(--bg-light);
     overflow-x: hidden;
     line-height: 1.6;
 }
@@ -36,18 +40,26 @@ h4 {
     color: var(--text-main);
 }
 
+.serif-font {
+    font-family: 'Playfair Display', serif !important;
+}
+
 .tracking-widest {
     letter-spacing: 0.2em;
 }
 
-/* Glassmorphism Utility */
+/* Modern Card Style (formerly glass-panel) */
 .glass-panel {
     background: var(--bg-card);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--glass-border);
     border-radius: 20px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-panel:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 /* Gold Gradient Text */
@@ -60,57 +72,87 @@ h4 {
 }
 
 /* Navigation Styles */
+.navbar {
+    background: rgba(248, 250, 252, 0.8) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
 .navbar-nav .nav-link {
     color: var(--text-main) !important;
     font-weight: 500;
     transition: color 0.3s ease;
 }
 
-.navbar-nav .nav-link:hover {
-    color: var(--gold) !important;
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link.active {
+    color: var(--primary) !important;
+}
+
+.dropdown-menu {
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
 }
 
 .dropdown-item:hover {
-    background: rgba(212, 175, 55, 0.1) !important;
-    color: var(--gold) !important;
+    background: rgba(79, 70, 229, 0.05) !important;
+    color: var(--primary) !important;
 }
 
 /* Premium Buttons */
 .btn-primary {
-    background: var(--gold-gradient);
+    background: var(--primary);
     border: none;
-    color: #000 !important;
+    color: #fff !important;
     font-weight: 600;
+    padding: 12px 30px;
+    border-radius: 8px;
     transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
 .btn-primary:hover {
+    background: #4338ca;
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3);
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2);
 }
 
-.btn-outline-light {
-    border: 1px solid rgba(255, 255, 255, 0.2);
+.btn-outline-indigo {
+    border: 1px solid var(--primary);
+    color: var(--primary) !important;
+    font-weight: 600;
+    padding: 12px 30px;
+    border-radius: 8px;
     transition: all 0.4s ease;
 }
 
-.btn-outline-light:hover {
-    background: white;
-    color: black !important;
+.btn-outline-indigo:hover {
+    background: var(--primary);
+    color: #fff !important;
 }
 
-/* Background Particles Overlap */
-#particles-js {
+/* Progress Bar */
+.scroll-progress {
     position: fixed;
-    width: 100%;
-    height: 100%;
     top: 0;
     left: 0;
-    z-index: -1;
-    background: radial-gradient(circle at top right, #1a1c20, #0a0c10);
+    width: 0%;
+    height: 3px;
+    background: var(--primary);
+    z-index: 9999;
 }
 
-/* Reveal Animations */
+/* Utility */
+.bg-subtle {
+    background-color: #f1f5f9;
+}
+
+.text-muted-custom {
+    color: var(--text-muted);
+}
+
+/* Animation Overrides */
 .animate__animated {
-    --animate-duration: 1.2s;
+    --animate-duration: 0.8s;
 }
