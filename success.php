@@ -148,10 +148,16 @@ if (isset($_SESSION['booking_success'])) {
 </head>
 <body>
     <div class="success-card animate__animated animate__zoomIn">
-        <div class="check-header">
-            <div class="check-icon"><i class="fas fa-check-circle"></i></div>
-            <h1 class="serif-font mb-0">Voyage Confirmed</h1>
-            <p class="opacity-75 mb-0">Your journey to <?php echo $destination; ?> is secured.</p>
+        <div class="check-header <?php echo ($booking['verification_pending'] ?? false) ? 'bg-warning' : ''; ?>">
+            <div class="check-icon">
+                <i class="fas <?php echo ($booking['verification_pending'] ?? false) ? 'fa-clock animate__animated animate__pulse animate__infinite' : 'fa-check-circle'; ?>"></i>
+            </div>
+            <h1 class="serif-font mb-0"><?php echo ($booking['verification_pending'] ?? false) ? 'Request Processing' : 'Voyage Confirmed'; ?></h1>
+            <p class="opacity-75 mb-0">
+                <?php echo ($booking['verification_pending'] ?? false) 
+                    ? 'Your payment is under verification. We will notify you via email.' 
+                    : 'Your journey to ' . $destination . ' is secured.'; ?>
+            </p>
         </div>
         
         <div class="ticket-body">

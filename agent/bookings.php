@@ -58,7 +58,8 @@ $res = mysqli_query($con, $sql);
                             <tr>
                                 <th>Trip / Expedition</th>
                                 <th>Traveler Details</th>
-                                <th>Operational Status</th>
+                                <th>Expedition Status</th>
+                                <th>Payment Verify</th>
                                 <th>Booking Date</th>
                                 <th class="text-end">Actions</th>
                             </tr>
@@ -87,6 +88,22 @@ $res = mysqli_query($con, $sql);
                                         </select>
                                     </td>
                                     <td>
+                                        <?php if($row['verification_status'] == 'pending'): ?>
+                                            <button class="btn btn-sm btn-warning rounded-pill px-3 animate__animated animate__pulse animate__infinite" 
+                                                    onclick='showVerificationModal(<?php echo json_encode($row); ?>)'>
+                                                <i class="fa-solid fa-clock me-1"></i> Verify Now
+                                            </button>
+                                        <?php elseif($row['verification_status'] == 'verified'): ?>
+                                            <span class="badge bg-success-light text-success rounded-pill px-3">
+                                                <i class="fa-solid fa-check-double me-1"></i> Verified
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger-light text-danger rounded-pill px-3">
+                                                <i class="fa-solid fa-xmark me-1"></i> Rejected
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
                                         <div class="fs-sm text-slate-600"><?php echo date('M d, Y', strtotime($row['booking_date'])); ?></div>
                                     </td>
                                     <td class="text-end">
@@ -98,7 +115,7 @@ $res = mysqli_query($con, $sql);
                                 <?php endwhile; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="5" class="text-center py-5 text-muted">No bookings found matching your parameters.</td>
+                                    <td colspan="6" class="text-center py-5 text-muted">No bookings found matching your parameters.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -108,6 +125,46 @@ $res = mysqli_query($con, $sql);
         </main>
 
         <?php include("footer.php"); ?>
+    </div>
+</div>
+
+<!-- Payment Verification Modal -->
+<div class="modal fade" id="verifyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header bg-indigo text-white border-0 py-3">
+                <h5 class="modal-title serif-font"><i class="fa-solid fa-shield-check me-2"></i>Payment Verification</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-7">
+                        <label class="small text-muted mb-2 d-block">Transaction Screenshot</label>
+                        <div class="screenshot-vault p-2 bg-light rounded-3 border">
+                            <img id="modalScreenshot" src="" class="img-fluid rounded-2 shadow-sm" alt="Payment Proof">
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="p-3 bg-light rounded-3 mb-4">
+                            <h6 class="text-indigo small text-uppercase tracking-wider fw-bold mb-3">Booking Intelligence</h6>
+                            <div class="mb-2 fs-sm"><strong>Traveler:</strong> <span id="modalUser"></span></div>
+                            <div class="mb-2 fs-sm"><strong>Email:</strong> <span id="modalEmail"></span></div>
+                            <div class="mb-2 fs-sm"><strong>Method:</strong> <span id="modalMethod" class="text-uppercase fw-bold"></span></div>
+                            <div class="mb-0 fs-sm"><strong>Price:</strong> <span id="modalPrice" class="text-success fw-bold"></span></div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success py-2 rounded-pill" onclick="processVerification('verified')">
+                                <i class="fa-solid fa-check me-2"></i>Approve Payment
+                            </button>
+                            <button class="btn btn-outline-danger py-2 rounded-pill" onclick="processVerification('rejected')">
+                                <i class="fa-solid fa-xmark me-2"></i>Reject Payment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -124,6 +181,52 @@ $res = mysqli_query($con, $sql);
 </div>
 
 <script>
+let currentBookingId = null;
+
+function showVerificationModal(booking) {
+    currentBookingId = booking.booking_id;
+    document.getElementById('modalUser').innerText = booking.first_name + ' ' + booking.last_name;
+    document.getElementById('modalEmail').innerText = booking.email;
+    document.getElementById('modalMethod').innerText = booking.payment_method;
+    document.getElementById('modalPrice').innerText = '$' + parseFloat(booking.total_price).toLocaleString();
+    
+    const screenshot = booking.payment_screenshot;
+    const imgPath = screenshot ? '../upload/payments/' + screenshot : '../img/no-screenshot.png';
+    document.getElementById('modalScreenshot').src = imgPath;
+    
+    const modal = new bootstrap.Modal(document.getElementById('verifyModal'));
+    modal.show();
+}
+
+function processVerification(status) {
+    const toastElem = document.getElementById('statusToast');
+    const toast = new bootstrap.Toast(toastElem);
+    
+    $.ajax({
+        url: 'verify_payment.php',
+        type: 'POST',
+        data: {
+            booking_id: currentBookingId,
+            status: status
+        },
+        success: function(response) {
+            let data = response;
+            try {
+                if(typeof response === 'string') data = JSON.parse(response);
+            } catch(e) {}
+            
+            if(data.status === 'success') {
+                location.reload(); // Refresh to show new status
+            } else {
+                document.getElementById('toastMessage').innerText = 'Error: ' + data.message;
+                toastElem.classList.remove('bg-indigo');
+                toastElem.classList.add('bg-danger');
+                toast.show();
+            }
+        }
+    });
+}
+
 function updateExpeditionStatus(bookingId, status) {
     const toastElem = document.getElementById('statusToast');
     const toast = new bootstrap.Toast(toastElem);

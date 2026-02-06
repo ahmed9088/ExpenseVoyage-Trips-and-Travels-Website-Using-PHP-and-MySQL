@@ -34,6 +34,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $ticketNumber = strtoupper(uniqid("EV"));
     $ticketHash = hash('sha256', $ticketNumber . time() . $_SESSION['userid']);
     $totalPrice = $trip['budget'] * $seats;
+    $paymentMethod = $_POST['payment_method'] ?? 'credit_card';
+    $verificationStatus = ($paymentMethod === 'credit_card') ? 'verified' : 'pending';
+    
+    // Handle Screenshot Upload for Mobile Wallets
+    $screenshotPath = null;
+    if (in_array($paymentMethod, ['jazzcash', 'easypaisa']) && isset($_FILES['payment_screenshot']) && $_FILES['payment_screenshot']['error'] === 0) {
+        $uploadDir = 'upload/payments/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+        
+        $ext = strtolower(pathinfo($_FILES['payment_screenshot']['name'], PATHINFO_EXTENSION));
+        $screenshotName = 'PAY_' . uniqid() . '.' . $ext;
+        if (move_uploaded_file($_FILES['payment_screenshot']['tmp_name'], $uploadDir . $screenshotName)) {
+            $screenshotPath = $screenshotName;
+        }
+    }
 
     // Get user_id from users table
     $uStmt = $con->prepare("SELECT id FROM users WHERE email = ?");
@@ -44,11 +59,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user_id = $user['id'] ?? 0;
 
     // PERSIST TO BOOKINGS TABLE with Enterprise tracking
-    $bStmt = $con->prepare("INSERT INTO bookings (user_id, trip_id, travel_date, guests, total_price, status, expedition_status, ticket_hash, payment_status) VALUES (?, ?, ?, ?, ?, 'confirmed', 'scheduled', ?, 'paid')");
-    $bStmt->bind_param("iisids", $user_id, $trip_id, $trip['starts_date'], $seats, $totalPrice, $ticketHash);
+    $bStmt = $con->prepare("INSERT INTO bookings (user_id, trip_id, travel_date, guests, total_price, status, expedition_status, ticket_hash, payment_status, payment_method, payment_screenshot, verification_status) VALUES (?, ?, ?, ?, ?, 'confirmed', 'scheduled', ?, 'paid', ?, ?, ?)");
+    $bStmt->bind_param("iisidssss", $user_id, $trip_id, $trip['starts_date'], $seats, $totalPrice, $ticketHash, $paymentMethod, $screenshotPath, $verificationStatus);
     
     if ($bStmt->execute()) {
-        log_audit($con, $user_id, 'BOOKING_CREATED', "Trip ID: $trip_id, Total: $totalPrice");
+        log_audit($con, $user_id, 'BOOKING_CREATED', "Trip ID: $trip_id, Total: $totalPrice, Auth: $verificationStatus");
         $_SESSION['booking_success'] = [
             'trip_name' => $trip['trip_name'],
             'destination' => $trip['destination'],
@@ -57,7 +72,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             'seats' => $seats,
             'total_price' => $totalPrice,
             'user_email' => $userEmail,
-            'start_date' => $trip['starts_date']
+            'start_date' => $trip['starts_date'],
+            'verification_pending' => ($verificationStatus === 'pending')
         ];
         header('Location: success.php');
         exit();
@@ -143,44 +159,69 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <h2 class="serif-font mb-4">Secure Payment</h2>
                     <p class="text-muted mb-5">Confirm your selection and finalize your luxury journey.</p>
 
-                    <form action="payment.php?trip_id=<?php echo $trip_id; ?>" method="POST">
+                    <form action="payment.php?trip_id=<?php echo $trip_id; ?>" method="POST" enctype="multipart/form-data" id="paymentForm">
                         <?php echo csrf_input(); ?>
                         <input type="hidden" name="seats" value="<?php echo intval($_GET['seats'] ?? 1); ?>">
 
                         <h5 class="serif-font mb-4">Select Method</h5>
                         <div class="row g-3 mb-5">
-                            <div class="col-6">
-                                <div class="payment-method-card p-4 text-center active">
+                            <div class="col-4">
+                                <label class="payment-method-card p-3 text-center w-100 active" for="pay_card">
+                                    <input type="radio" name="payment_method" value="credit_card" id="pay_card" class="d-none" checked>
                                     <i class="fas fa-credit-card fa-2x mb-2 text-primary"></i>
                                     <p class="small mb-0">Credit Card</p>
-                                </div>
+                                </label>
                             </div>
-                            <div class="col-6">
-                                <div class="payment-method-card p-4 text-center">
-                                    <i class="fab fa-apple-pay fa-2x mb-2 text-muted"></i>
-                                    <p class="small mb-0">Apple Pay</p>
+                            <div class="col-4">
+                                <label class="payment-method-card p-3 text-center w-100" for="pay_jazz">
+                                    <input type="radio" name="payment_method" value="jazzcash" id="pay_jazz" class="d-none">
+                                    <i class="fa-solid fa-mobile-screen fa-2x mb-2 text-muted"></i>
+                                    <p class="small mb-0">JazzCash</p>
+                                </label>
+                            </div>
+                            <div class="col-4">
+                                <label class="payment-method-card p-3 text-center w-100" for="pay_easy">
+                                    <input type="radio" name="payment_method" value="easypaisa" id="pay_easy" class="d-none">
+                                    <i class="fa-solid fa-wallet fa-2x mb-2 text-muted"></i>
+                                    <p class="small mb-0">EasyPaisa</p>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Card Details (Standard) -->
+                        <div id="cardDetails">
+                            <div class="mb-4">
+                                <label class="small text-muted mb-2">Card Holder</label>
+                                <input type="text" name="card_holder" class="form-control bg-light border-0 py-3" value="<?php echo htmlspecialchars($_SESSION['name'] ?? ''); ?>">
+                            </div>
+                            <div class="mb-4">
+                                <label class="small text-muted mb-2">Card Details</label>
+                                <input type="text" name="card_number" class="form-control bg-light border-0 py-3" placeholder="XXXX XXXX XXXX XXXX">
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <input type="text" name="card_expiry" class="form-control bg-light border-0 py-3" placeholder="MM/YY">
+                                </div>
+                                <div class="col-6">
+                                    <input type="text" name="card_cvc" class="form-control bg-light border-0 py-3" placeholder="CVC">
                                 </div>
                             </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="small text-muted mb-2">Card Holder</label>
-                            <input type="text" class="form-control bg-light border-0 py-3" value="<?php echo htmlspecialchars($_SESSION['name'] ?? ''); ?>">
-                        </div>
-                        <div class="mb-4">
-                            <label class="small text-muted mb-2">Card Details</label>
-                            <input type="text" class="form-control bg-light border-0 py-3" placeholder="XXXX XXXX XXXX XXXX">
-                        </div>
-                        <div class="row g-3 mb-5">
-                            <div class="col-6">
-                                <input type="text" class="form-control bg-light border-0 py-3" placeholder="MM/YY">
+                        <!-- Mobile Wallet Details (Manual Verification) -->
+                        <div id="mobileWalletDetails" class="d-none">
+                            <div class="alert bg-indigo-light text-indigo small mb-4">
+                                <i class="fa-solid fa-circle-info me-2"></i>
+                                Please transfer the total amount to <strong>0300-1234567</strong> and upload the confirmation screenshot below.
                             </div>
-                            <div class="col-6">
-                                <input type="text" class="form-control bg-light border-0 py-3" placeholder="CVC">
+                            <div class="mb-4">
+                                <label class="small text-muted mb-2">Transaction Screenshot</label>
+                                <input type="file" name="payment_screenshot" id="screenshotInput" class="form-control bg-light border-0 py-3" accept="image/*">
+                                <p class="text-muted fs-xxs mt-2">Maximum file size: 5MB. Formats: JPG, PNG.</p>
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100 py-4 shadow">CONFIRM & EXECUTE BOOKING</button>
+                        <button type="submit" class="btn btn-primary w-100 py-4 shadow mt-5">CONFIRM & EXECUTE BOOKING</button>
                     </form>
                 </div>
             </div>
@@ -225,5 +266,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('input[name="payment_method"]').on('change', function() {
+                const method = $(this).val();
+                
+                // Update UI selection state
+                $('.payment-method-card').removeClass('active');
+                $(this).closest('.payment-method-card').addClass('active');
+                
+                // Toggle Detail Panes
+                if (method === 'credit_card') {
+                    $('#cardDetails').removeClass('d-none');
+                    $('#mobileWalletDetails').addClass('d-none');
+                    $('#screenshotInput').prop('required', false);
+                } else {
+                    $('#cardDetails').addClass('d-none');
+                    $('#mobileWalletDetails').removeClass('d-none');
+                    $('#screenshotInput').prop('required', true);
+                }
+            });
+        });
+    </script>
 </body>
 </html>

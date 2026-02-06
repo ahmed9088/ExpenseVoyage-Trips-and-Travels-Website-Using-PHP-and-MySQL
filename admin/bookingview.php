@@ -79,8 +79,10 @@ if (isset($_GET['delete_id'])) {
                             <th>User</th>
                             <th>Trip</th>
                             <th>Price</th>
+                            <th>Payment</th>
                             <th>Date & Time</th>
                             <th>Status</th>
+                            <th>Verify</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -96,6 +98,11 @@ if (isset($_GET['delete_id'])) {
                             if($row['status'] == 'confirmed') $status_class = 'bg-success-light text-success';
                             if($row['status'] == 'pending') $status_class = 'bg-warning-light text-warning';
                             if($row['status'] == 'cancelled') $status_class = 'bg-danger-light text-danger';
+
+                            $v_badge = 'bg-secondary';
+                            if($row['verification_status'] == 'pending') $v_badge = 'bg-warning animate__animated animate__pulse animate__infinite';
+                            if($row['verification_status'] == 'verified') $v_badge = 'bg-success';
+                            if($row['verification_status'] == 'rejected') $v_badge = 'bg-danger';
                         ?>
                         <tr>
                             <td><span class="fw-bold">#BK-<?php echo $row['booking_id']; ?></span></td>
@@ -108,10 +115,23 @@ if (isset($_GET['delete_id'])) {
                                 <div class="fs-xs text-muted">ID: #TRP-<?php echo $row['trip_id']; ?></div>
                             </td>
                             <td><span class="fw-bold text-slate-800">$<?php echo number_format($row['total_price'], 2); ?></span></td>
+                            <td>
+                                <div class="text-uppercase fw-bold fs-xs text-slate-600"><?php echo htmlspecialchars($row['payment_method']); ?></div>
+                                <?php if($row['payment_screenshot']): ?>
+                                    <a href="../upload/payments/<?php echo $row['payment_screenshot']; ?>" target="_blank" class="fs-xxs text-indigo">
+                                        <i class="fa-solid fa-image me-1"></i> Screenshot
+                                    </a>
+                                <?php endif; ?>
+                            </td>
                             <td><span class="fs-xs"><?php echo date('Y-m-d H:i', strtotime($row['booking_date'])); ?></span></td>
                             <td>
                                 <span class="badge <?php echo $status_class; ?> rounded-pill px-3 py-2 fs-xs text-uppercase">
                                     <?php echo strtoupper($row['status']); ?>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge <?php echo $v_badge; ?> rounded-pill px-2 py-1 fs-xxs">
+                                    <?php echo strtoupper($row['verification_status']); ?>
                                 </span>
                             </td>
                             <td class="text-end">
