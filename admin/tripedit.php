@@ -4,8 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once("config.php");
 
-// Check if admin is logged in
-if(!isset($_SESSION['aid'])) {
+if (!isset($_SESSION['aid'])) {
     header("location:index.php");
     exit();
 }
@@ -13,7 +12,8 @@ if(!isset($_SESSION['aid'])) {
 $error = "";
 $success = "";
 
-if (isset($_POST['add_trip'])) {
+if (isset($_POST['update_trip'])) {
+    $trip_id = intval($_POST['trip_id']);
     $trip_name = mysqli_real_escape_string($con, $_POST['trip_name']);
     $destination = mysqli_real_escape_string($con, $_POST['destination']);
     $travel_type = mysqli_real_escape_string($con, $_POST['travel_type']);
@@ -24,30 +24,40 @@ if (isset($_POST['add_trip'])) {
     $seats_available = intval($_POST['seats_available']);
     $stars = intval($_POST['stars']);
     $description = mysqli_real_escape_string($con, $_POST['description']);
-    $user_id = intval($_POST['user_id']); // Assigned Agent
+    $agent_id = intval($_POST['user_id']);
 
-    // Handle Image
-    $trip_image = "";
+    // Handle Image Update
+    $image_sql = "";
     if (isset($_FILES['trip_image']) && $_FILES['trip_image']['error'] === 0) {
         $img_name = time() . '_' . $_FILES['trip_image']['name'];
         $target = '../upload/trips/' . $img_name;
         if (move_uploaded_file($_FILES['trip_image']['tmp_name'], $target)) {
-            $trip_image = $img_name;
+            $image_sql = ", trip_image = '$img_name'";
         }
     }
 
-    $sql = "INSERT INTO trips (trip_name, destination, travel_type, budget, starts_date, end_date, duration_days, seats_available, stars, description, trip_image, user_id, booked_seats) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)";
+    $sql = "UPDATE trips SET 
+            trip_name = ?, destination = ?, travel_type = ?, budget = ?, 
+            starts_date = ?, end_date = ?, duration_days = ?, 
+            seats_available = ?, stars = ?, description = ?, user_id = ? 
+            $image_sql WHERE trip_id = ?";
     
     $stmt = $con->prepare($sql);
-    $stmt->bind_param('sssissiiiss i', $trip_name, $destination, $travel_type, $budget, $starts_date, $end_date, $duration_days, $seats_available, $stars, $description, $trip_image, $user_id);
+    $stmt->bind_param('sssissiiisii', $trip_name, $destination, $travel_type, $budget, $starts_date, $end_date, $duration_days, $seats_available, $stars, $description, $agent_id, $trip_id);
     
     if ($stmt->execute()) {
-        $success = "Trip Added Successfully!";
+        $success = "Trip details updated successfully!";
     } else {
-        $error = "Failed to add trip: " . $stmt->error;
+        $error = "Failed to update trip: " . $stmt->error;
     }
 }
+
+// Fetch Trip Data
+if(!isset($_GET['id'])) { header("Location: tripview.php"); exit(); }
+$id = intval($_GET['id']);
+$res = $con->query("SELECT * FROM trips WHERE trip_id = $id");
+$trip = $res->fetch_assoc();
+if(!$trip) { header("Location: tripview.php"); exit(); }
 ?>
 
 <!DOCTYPE html>
@@ -55,7 +65,7 @@ if (isset($_POST['add_trip'])) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add New Trip - ExpenseVoyage Dashboard</title>
+    <title>Edit Trip - ExpenseVoyage Dashboard</title>
     <link rel="shortcut icon" type="image/x-icon" href="../img/favicon-32x32.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -69,8 +79,8 @@ if (isset($_POST['add_trip'])) {
     <main class="modern-main">
         <div class="page-header d-flex justify-content-between align-items-center mb-5">
             <div class="animate__animated animate__fadeIn">
-                <h1 class="mb-1">Add New <span class="text-indigo">Trip</span></h1>
-                <p class="text-muted mb-0">Fill in the details below to create a new trip.</p>
+                <h1 class="mb-1">Edit <span class="text-indigo">Trip</span></h1>
+                <p class="text-muted mb-0">Update information for trip #<?php echo $id; ?>.</p>
             </div>
             <div class="date-node text-end">
                 <a href="tripview.php" class="btn btn-outline-indigo rounded-pill px-4">
@@ -96,91 +106,94 @@ if (isset($_POST['add_trip'])) {
                     <?php endif; ?>
 
                     <form method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="trip_id" value="<?php echo $id; ?>">
                         <div class="row g-4">
-                            <!-- Left Column: Core Data -->
+                            <!-- Left Column -->
                             <div class="col-lg-7">
                                 <h5 class="section-title mb-4">Trip Information</h5>
                                 <div class="mb-3">
                                     <label class="form-label">Trip Name</label>
-                                    <input type="text" name="trip_name" class="form-control" required placeholder="e.g. Northern Lights Discovery">
+                                    <input type="text" name="trip_name" class="form-control" value="<?php echo htmlspecialchars($trip['trip_name']); ?>" required>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Destination (City)</label>
-                                        <input type="text" name="destination" class="form-control" required placeholder="City or Region">
+                                        <input type="text" name="destination" class="form-control" value="<?php echo htmlspecialchars($trip['destination']); ?>" required>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Trip Type</label>
                                         <select name="travel_type" class="form-select">
-                                            <option value="local">Local Trip</option>
-                                            <option value="international">International Trip</option>
+                                            <option value="local" <?php echo $trip['travel_type'] == 'local' ? 'selected' : ''; ?>>Local Trip</option>
+                                            <option value="international" <?php echo $trip['travel_type'] == 'international' ? 'selected' : ''; ?>>International Trip</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Description (Itinerary)</label>
-                                    <textarea name="description" class="form-control" rows="5" placeholder="Full itinerary and details..."></textarea>
+                                    <textarea name="description" class="form-control" rows="5"><?php echo htmlspecialchars($trip['description']); ?></textarea>
                                 </div>
                             </div>
 
-                            <!-- Right Column: Dynamics -->
+                            <!-- Right Column -->
                             <div class="col-lg-5">
                                 <h5 class="section-title mb-4">Pricing & Capacity</h5>
                                 <div class="row g-3">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Price ($)</label>
-                                        <input type="number" name="budget" class="form-control" step="0.01" required placeholder="0.00">
+                                        <input type="number" name="budget" class="form-control" step="0.01" value="<?php echo $trip['budget']; ?>" required>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Total Seats</label>
-                                        <input type="number" name="seats_available" class="form-control" required placeholder="Total slots">
+                                        <input type="number" name="seats_available" class="form-control" value="<?php echo $trip['seats_available']; ?>" required>
                                     </div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Start Date</label>
-                                        <input type="date" name="starts_date" class="form-control" required>
+                                        <input type="date" name="starts_date" class="form-control" value="<?php echo $trip['starts_date']; ?>" required>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">End Date</label>
-                                        <input type="date" name="end_date" class="form-control" required>
+                                        <input type="date" name="end_date" class="form-control" value="<?php echo $trip['end_date']; ?>" required>
                                     </div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Duration (Days)</label>
-                                        <input type="number" name="duration_days" class="form-control" required placeholder="e.g. 7">
+                                        <input type="number" name="duration_days" class="form-control" value="<?php echo $trip['duration_days']; ?>" required>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Trip Rating</label>
                                         <select name="stars" class="form-select">
-                                            <option value="5">5 Star - Luxury</option>
-                                            <option value="4">4 Star - Premium</option>
-                                            <option value="3">3 Star - Good</option>
-                                            <option value="2">2 Star - Budget</option>
-                                            <option value="1">1 Star - Basic</option>
+                                            <?php for($s=1; $s<=5; $s++): ?>
+                                            <option value="<?php echo $s; ?>" <?php echo $trip['stars'] == $s ? 'selected' : ''; ?>><?php echo $s; ?> Star</option>
+                                            <?php endfor; ?>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Assigned Agent</label>
                                     <select name="user_id" class="form-select" required>
-                                        <option value="">Select an Agent</option>
                                         <?php
                                         $agents = $con->query("SELECT id, first_name, last_name FROM users WHERE role = 'agent' ORDER BY first_name ASC");
                                         while($agent = $agents->fetch_assoc()):
                                         ?>
-                                            <option value="<?php echo $agent['id']; ?>"><?php echo htmlspecialchars($agent['first_name'] . ' ' . $agent['last_name']); ?></option>
+                                            <option value="<?php echo $agent['id']; ?>" <?php echo $trip['user_id'] == $agent['id'] ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($agent['first_name'] . ' ' . $agent['last_name']); ?>
+                                            </option>
                                         <?php endwhile; ?>
                                     </select>
                                 </div>
                                 <div class="mb-4">
-                                    <label class="form-label">Trip Image</label>
+                                    <label class="form-label">Trip Photo (Optional)</label>
                                     <input type="file" name="trip_image" class="form-control" accept="image/*">
+                                    <?php if($trip['trip_image']): ?>
+                                        <div class="mt-2 fs-xs text-muted">Current: <?php echo $trip['trip_image']; ?></div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="d-grid pt-2">
-                                    <button type="submit" name="add_trip" class="btn btn-primary rounded-pill py-3 shadow-sm">
-                                        <i class="fa-solid fa-plus me-2"></i>Add Trip Now
+                                    <button type="submit" name="update_trip" class="btn btn-primary rounded-pill py-3 shadow-sm">
+                                        <i class="fa-solid fa-floppy-disk me-2"></i>Save Changes
                                     </button>
                                 </div>
                             </div>
@@ -190,4 +203,7 @@ if (isset($_POST['add_trip'])) {
             </div>
         </div>
     </main>
-    <?php include("footer.php"); ?>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

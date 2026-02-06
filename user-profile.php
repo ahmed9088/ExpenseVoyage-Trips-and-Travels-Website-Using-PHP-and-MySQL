@@ -212,8 +212,45 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </div>
                     </div>
                 </form>
-            <div class="glass-panel p-5 mt-5 bg-white shadow-lg border-0 animate__animated animate__fadeIn">
-                <h3 class="serif-font mb-4">My Expeditions</h3>
+
+                <!-- Notification Hub -->
+                <div class="glass-panel p-5 mt-5 bg-white shadow-lg border-0 animate__animated animate__fadeIn">
+                    <h3 class="serif-font mb-4 d-flex justify-content-between align-items-center">
+                        Expedition Alerts
+                        <span class="badge bg-primary rounded-pill small" style="font-size: 0.8rem;">LIVE</span>
+                    </h3>
+                    <div class="notification-list">
+                        <?php
+                        $nSql = "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5";
+                        $nStmt = mysqli_prepare($con, $nSql);
+                        mysqli_stmt_bind_param($nStmt, "i", $userid);
+                        mysqli_stmt_execute($nStmt);
+                        $nRes = mysqli_stmt_get_result($nStmt);
+                        
+                        if (mysqli_num_rows($nRes) > 0):
+                            while ($note = mysqli_fetch_assoc($nRes)):
+                        ?>
+                            <div class="notification-item p-3 border-bottom mb-2 <?php echo $note['is_read'] ? 'opacity-75' : 'bg-light border-start border-4 border-primary'; ?>">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="fw-bold mb-1"><?php echo htmlspecialchars($note['title']); ?></h6>
+                                    <small class="text-muted"><?php echo date('M d, H:i', strtotime($note['created_at'])); ?></small>
+                                </div>
+                                <p class="small text-muted mb-0"><?php echo htmlspecialchars($note['message']); ?></p>
+                            </div>
+                        <?php 
+                            endwhile;
+                        else:
+                        ?>
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-bell-slash fa-2x mb-2 opacity-25"></i>
+                                <p class="small mb-0">No active alerts for your expeditions.</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 mt-5 bg-white shadow-lg border-0 animate__animated animate__fadeIn">
+                    <h3 class="serif-font mb-4">My Expeditions</h3>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <thead class="bg-light">
@@ -222,7 +259,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Travel Date</th>
                                 <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Guests</th>
                                 <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Total</th>
-                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Status</th>
+                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Expedition Status</th>
+                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted text-end">Verification</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -235,6 +273,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             
                             if (mysqli_num_rows($bRes) > 0):
                                 while ($booking = mysqli_fetch_assoc($bRes)):
+                                    $status_class = [
+                                        'scheduled' => 'bg-info-subtle text-info',
+                                        'departed' => 'bg-primary-subtle text-primary',
+                                        'arrived' => 'bg-success-subtle text-success',
+                                        'completed' => 'bg-dark-subtle text-dark',
+                                        'cancelled' => 'bg-danger-subtle text-danger'
+                                    ][$booking['expedition_status'] ?? 'scheduled'] ?? 'bg-light text-muted';
                             ?>
                                 <tr>
                                     <td class="py-4">
@@ -247,9 +292,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     <td><?php echo $booking['guests']; ?></td>
                                     <td><span class="text-primary fw-bold">$<?php echo number_format($booking['total_price']); ?></span></td>
                                     <td>
-                                        <span class="badge rounded-pill <?php echo $booking['status'] == 'confirmed' ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'; ?> px-3 py-2 text-uppercase" style="font-size: 0.7rem;">
-                                            <?php echo $booking['status']; ?>
+                                        <span class="badge rounded-pill <?php echo $status_class; ?> px-3 py-2 text-uppercase" style="font-size: 0.7rem;">
+                                            <?php echo htmlspecialchars($booking['expedition_status'] ?? 'Scheduled'); ?>
                                         </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-light border" title="Verify Ticket" onclick="alert('Digital Identity Hash: <?php echo $booking['ticket_hash']; ?>')">
+                                            <i class="fas fa-fingerprint"></i> VERIFY
+                                        </button>
                                     </td>
                                 </tr>
                             <?php 

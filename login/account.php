@@ -1,6 +1,7 @@
 <?php
 session_start();
 include '../admin/config.php';
+include '../audit_helper.php';
 include '../csrf.php';
 
 // Verification Logic
@@ -19,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $email = mysqli_real_escape_string($con, $_POST['email']);
         $password = $_POST['password'];
         
-        $sql = "SELECT id, first_name, last_name, email, password_hash, is_verified FROM users WHERE email = ?";
+        $sql = "SELECT id, first_name, last_name, email, password_hash, is_verified, role FROM users WHERE email = ?";
         $stmt = mysqli_prepare($con, $sql);
         mysqli_stmt_bind_param($stmt, "s", $email);
         mysqli_stmt_execute($stmt);
@@ -31,8 +32,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['name'] = $user['first_name'] . ' ' . $user['last_name'];
                 $_SESSION['userid'] = $user['id'];
                 $_SESSION['email'] = $user['email'];
+                $_SESSION['role'] = $user['role'] ?? 'traveler';
                 
-                header('Location: ../index.php');
+                log_audit($con, $user['id'], 'USER_LOGIN', "Role: " . $_SESSION['role']);
+
+                // Role-based redirection
+                if ($_SESSION['role'] == 'admin') {
+                    header('Location: ../admin/index.php');
+                } elseif ($_SESSION['role'] == 'agent') {
+                    header('Location: ../agent/dashboard.php');
+                } else {
+                    $redirect = $_SESSION['redirect_after_login'] ?? '../index.php';
+                    unset($_SESSION['redirect_after_login']);
+                    header("Location: $redirect");
+                }
                 exit;
             } else {
                 $message = "Please verify your email address before logging in!";
@@ -80,6 +93,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
             }
         }
+    }
+}
+
+// Security & Authorization Feedbacks
+if (isset($_GET['error'])) {
+    if ($_GET['error'] == 'unauthorized_access') {
+        $message = "Access Denied: Your account does not have mission-level permissions.";
+    } elseif ($_GET['error'] == 'session_invalid') {
+        $message = "Session expired or invalid identification. Please sign in again.";
     }
 }
 ?>

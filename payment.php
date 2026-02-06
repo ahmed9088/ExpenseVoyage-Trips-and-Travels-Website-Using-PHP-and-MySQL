@@ -2,6 +2,7 @@
 include 'chatbot-loader.php'; 
 session_start();
 require 'admin/config.php';
+require 'audit_helper.php';
 include 'csrf.php';
 
 // Check if user is logged in
@@ -31,25 +32,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $seats = intval($_POST['seats'] ?? 1);
     $userEmail = $_SESSION['email'];
     $ticketNumber = strtoupper(uniqid("EV"));
+    $ticketHash = hash('sha256', $ticketNumber . time() . $_SESSION['userid']);
     $totalPrice = $trip['budget'] * $seats;
 
     // Get user_id from users table
-    $uStmt = $con->prepare("SELECT user_id FROM users WHERE email = ?");
+    $uStmt = $con->prepare("SELECT id FROM users WHERE email = ?");
     $uStmt->bind_param("s", $userEmail);
     $uStmt->execute();
     $uRes = $uStmt->get_result();
     $user = $uRes->fetch_assoc();
-    $user_id = $user['user_id'] ?? 0;
+    $user_id = $user['id'] ?? 0;
 
-    // PERSIST TO BOOKINGS TABLE
-    $bStmt = $con->prepare("INSERT INTO bookings (user_id, trip_id, travel_date, guests, total_price, status, payment_status) VALUES (?, ?, ?, ?, ?, 'confirmed', 'paid')");
-    $bStmt->bind_param("iisi d", $user_id, $trip_id, $trip['starts_date'], $seats, $totalPrice);
+    // PERSIST TO BOOKINGS TABLE with Enterprise tracking
+    $bStmt = $con->prepare("INSERT INTO bookings (user_id, trip_id, travel_date, guests, total_price, status, expedition_status, ticket_hash, payment_status) VALUES (?, ?, ?, ?, ?, 'confirmed', 'scheduled', ?, 'paid')");
+    $bStmt->bind_param("iisids", $user_id, $trip_id, $trip['starts_date'], $seats, $totalPrice, $ticketHash);
     
     if ($bStmt->execute()) {
+        log_audit($con, $user_id, 'BOOKING_CREATED', "Trip ID: $trip_id, Total: $totalPrice");
         $_SESSION['booking_success'] = [
             'trip_name' => $trip['trip_name'],
             'destination' => $trip['destination'],
             'ticket_number' => $ticketNumber,
+            'ticket_hash' => $ticketHash,
             'seats' => $seats,
             'total_price' => $totalPrice,
             'user_email' => $userEmail,

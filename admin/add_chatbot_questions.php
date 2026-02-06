@@ -1,117 +1,103 @@
 <?php
-// Start the session only if it hasn't been started yet
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+require_once("config.php");
 
-// Include the database configuration
-include 'config.php';
-
-// Check if the form was submitted
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $question = $con->real_escape_string(trim($_POST['question']));
-    $answer = $con->real_escape_string(trim($_POST['answer']));
-
-    // Prepare the SQL statement
-    $sql = "INSERT INTO faq (question, answer) VALUES ('$question', '$answer')";
-
-    // Execute the query and check for success
-    if ($con->query($sql) === TRUE) {
-        $_SESSION['message'] = "Your question has been added successfully.";
-    } else {
-        $_SESSION['message'] = "Error: " . $con->error;
-    }
-
-    // Redirect back to the form page (add_questions.php)
-    header("Location: add_chatbot_questions.php");
+// Session Check
+if(!isset($_SESSION['aid'])) {
+    header("location:index.php");
     exit();
 }
 
-// Close the database connection
-$con->close();
-?>
+$success = "";
+$error = "";
 
+// Check if the form was submitted
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $question = mysqli_real_escape_string($con, trim($_POST['question']));
+    $answer = mysqli_real_escape_string($con, trim($_POST['answer']));
+
+    $sql = "INSERT INTO faq (question, answer) VALUES (?, ?)";
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param('ss', $question, $answer);
+
+    if ($stmt->execute()) {
+        $success = "Automated response node deployed successfully.";
+    } else {
+        $error = "Deployment failure: " . $stmt->error;
+    }
+}
+?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0">
-    <title>Tameer.com</title>
-    <link rel="shortcut icon" type="image/x-icon" href="assets/img/favicon-32x32.png">
-    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/css/font-awesome.min.css">
-    <link rel="stylesheet" href="assets/css/feathericon.min.css">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <!--[if lt IE 9]>
-        <script src="assets/js/html5shiv.min.js"></script>
-        <script src="assets/js/respond.min.js"></script>
-    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Response Logic - ExpenseVoyage Intelligence</title>
+    <link rel="shortcut icon" type="image/x-icon" href="../img/favicon-32x32.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/admin_modern.css">
 </head>
 <body>
-    <!-- Header -->
+
+<div class="admin-wrapper">
     <?php include("header.php"); ?>
-    <!-- /Sidebar -->
-    
-    <!-- Page Wrapper -->
-    <div class="page-wrapper">
-        <div class="content container-fluid">
-            <!-- Page Header -->
-            <div class="page-header">
-                <div class="row">
-                    <div class="col">
-                        <h3 class="page-title">Add Questions</h3>
-                        <ul class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
-                            <li class="breadcrumb-item active">Add Questions</li>
-                        </ul>
-                    </div>
-                </div>
+
+    <main class="modern-main">
+        <div class="page-header d-flex justify-content-between align-items-center mb-5">
+            <div class="animate__animated animate__fadeIn">
+                <h1 class="mb-1">Automated <span class="text-indigo">Response Logic</span></h1>
+                <p class="text-muted mb-0">Program the tactical chatbot with new operational knowledge.</p>
             </div>
-            <!-- /Page Header -->
-
-            <!-- Display success or error message -->
-            <?php
-            if (isset($_SESSION['message'])) {
-                echo '<div class="alert alert-info">' . $_SESSION['message'] . '</div>';
-                unset($_SESSION['message']); // Clear message after displaying
-            }
-            ?>
-
-            <!-- Add Question Form -->
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <form action="add_chatbot_questions.php" method="POST">
-                                <div class="form-group">
-                                    <label for="question">Question</label>
-                                    <input type="text" id="question" name="question" class="form-control" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="answer">Answer</label>
-                                    <textarea id="answer" name="answer" class="form-control" rows="5" required></textarea>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Add Question</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+            <div class="date-node text-end">
+                <span class="badge bg-indigo-light text-indigo">Logic Node Active</span>
             </div>
-            <!-- /Add Question Form -->
-
         </div>
-    </div>
-    <!-- /Page Wrapper -->
 
-    <!-- jQuery -->
-    <script src="assets/js/jquery-3.2.1.min.js"></script>
-    <!-- Bootstrap Core JS -->
-    <script src="assets/js/popper.min.js"></script>
-    <script src="assets/js/bootstrap.min.js"></script>
-    <!-- Slimscroll JS -->
-    <script src="assets/plugins/slimscroll/jquery.slimscroll.min.js"></script>
-    <!-- Custom JS -->
-    <script src="assets/js/script.js"></script>
-</body>
-</html>
+        <div class="row justify-content-center">
+            <div class="col-xl-8 col-lg-10">
+                <div class="intelligence-card animate__animated animate__fadeInUp">
+                    <h5 class="section-title mb-4">New Logic Parameter</h5>
+                    
+                    <?php if($success): ?>
+                        <div class="alert alert-success mb-4">
+                            <i class="fa-solid fa-robot me-2"></i> <?php echo $success; ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if($error): ?>
+                        <div class="alert alert-danger mb-4">
+                            <i class="fa-solid fa-triangle-exclamation me-2"></i> <?php echo $error; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <form action="add_chatbot_questions.php" method="POST">
+                        <div class="mb-4">
+                            <label class="form-label fs-xs text-uppercase fw-bold">Incoming Query (Question)</label>
+                            <input type="text" name="question" class="form-control" required placeholder="e.g. What is the visa policy for...?" style="font-weight: 600;">
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fs-xs text-uppercase fw-bold text-indigo">Automated Response (Answer)</label>
+                            <textarea name="answer" class="form-control" rows="5" required placeholder="Formulate the standard response..."></textarea>
+                        </div>
+                        <div class="d-grid pt-2">
+                            <button type="submit" class="btn btn-primary rounded-pill py-3 shadow-sm">
+                                <i class="fa-solid fa-microchip me-2"></i>Deploy Logic Node
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <p class="text-muted fs-xs">
+                        <i class="fa-solid fa-circle-info me-1"></i> 
+                        These logic nodes directly inform the client-facing AI Chatbot. Ensure accuracy in all deployments.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+    <?php include("footer.php"); ?>

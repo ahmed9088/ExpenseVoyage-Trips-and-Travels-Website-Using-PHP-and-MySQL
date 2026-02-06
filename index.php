@@ -232,6 +232,12 @@ if (isset($_SESSION['userid'])) {
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg p-3">
                                 <li><a class="dropdown-item py-2" href="user-profile.php"><i class="fas fa-user-circle me-2"></i> Profile</a></li>
+                                <?php if(($_SESSION['role'] ?? '') == 'admin'): ?>
+                                    <li><a class="dropdown-item py-2 text-primary" href="admin/index.php"><i class="fas fa-user-shield me-2"></i> Admin Panel</a></li>
+                                <?php elseif(($_SESSION['role'] ?? '') == 'agent'): ?>
+                                    <li><a class="dropdown-item py-2 text-primary" href="agent_dashboard.php"><i class="fas fa-briefcase me-2"></i> Agent Dashboard</a></li>
+                                <?php endif; ?>
+                                <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item py-2 text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
                             </ul>
                         </li>
@@ -266,11 +272,11 @@ if (isset($_SESSION['userid'])) {
                     <input type="date" class="form-control bg-light border-0 py-3">
                 </div>
                 <div class="col-lg-3">
-                    <label class="text-primary small text-uppercase fw-bold mb-2">Voyage Style</label>
-                    <select class="form-select bg-light border-0 py-3">
-                        <option>Bespoke Luxury</option>
-                        <option>Cultural Immersion</option>
-                        <option>Private Yacht</option>
+                    <label class="text-primary small text-uppercase fw-bold mb-2">Voyage Type</label>
+                    <select name="type" class="form-select bg-light border-0 py-3">
+                        <option value="all">Global Collection</option>
+                        <option value="local">Local (Pakistan)</option>
+                        <option value="international">Overseas / International</option>
                     </select>
                 </div>
                 <div class="col-lg-2">

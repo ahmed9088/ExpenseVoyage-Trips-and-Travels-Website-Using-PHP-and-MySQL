@@ -5,11 +5,15 @@ include 'admin/config.php';
 
 // Sanitize inputs
 $destination = isset($_GET['destination']) ? mysqli_real_escape_string($con, $_GET['destination']) : null;
+$type = isset($_GET['type']) ? mysqli_real_escape_string($con, $_GET['type']) : 'all';
 
 // Build Query
-$query = "SELECT * FROM trips";
+$query = "SELECT * FROM trips WHERE 1=1";
 if ($destination) {
-    $query .= " WHERE destination LIKE '%$destination%'";
+    $query .= " AND (destination LIKE '%$destination%' OR trip_name LIKE '%$destination%')";
+}
+if ($type !== 'all') {
+    $query .= " AND travel_type = '$type'";
 }
 $trips_result = mysqli_query($con, $query);
 
@@ -133,6 +137,14 @@ if (isset($_SESSION['userid'])) {
                 <a class="nav-link px-3 active" href="package.php">Packages</a>
                 <a class="nav-link px-3" href="about.php">About</a>
                 <a class="nav-link px-3" href="contact.php">Contact</a>
+                <?php if (isset($_SESSION['email'])): ?>
+                    <a class="nav-link px-3 text-primary fw-bold" href="user-profile.php"><?php echo htmlspecialchars($_SESSION['name']); ?></a>
+                    <?php if(($_SESSION['role'] ?? '') == 'admin'): ?>
+                        <a class="nav-link px-3 text-primary" href="admin/index.php">Admin</a>
+                    <?php elseif(($_SESSION['role'] ?? '') == 'agent'): ?>
+                        <a class="nav-link px-3 text-primary" href="agent_dashboard.php">Agent Portal</a>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
         </div>
     </nav>
