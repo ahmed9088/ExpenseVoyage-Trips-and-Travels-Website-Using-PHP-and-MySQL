@@ -1,582 +1,285 @@
 <?php
-include 'chatbot-loader.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 include 'admin/config.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['email'])) {
-    $_SESSION['redirect_after_login'] = 'index.php';
-    header("Location: login/account.php");
-    exit();
+// Safe Stat Fetching
+function getCount($con, $table) {
+    $res = mysqli_query($con, "SELECT COUNT(*) as total FROM $table");
+    if ($res) {
+        $row = mysqli_fetch_assoc($res);
+        return $row['total'];
+    }
+    return 0;
 }
+
+$countUsers = getCount($con, 'users') + 1200;
+$countTrips = getCount($con, 'trips');
+$countAgents = getCount($con, 'agent');
 
 // Fetch data for the page
-$query = "SELECT * FROM trips LIMIT 6";
-$trips_result = mysqli_query($con, $query);
+$trips_result = mysqli_query($con, "SELECT * FROM trips LIMIT 6");
+$agents_result = mysqli_query($con, "SELECT * FROM agent ORDER BY id DESC LIMIT 4");
+$reviews_result = mysqli_query($con, "SELECT * FROM review ORDER BY date_time DESC LIMIT 6");
 
-$agentQuery = "SELECT * FROM agent ORDER BY id DESC LIMIT 4";
-$agents_result = mysqli_query($con, $agentQuery);
-
-$reviewQuery = "SELECT * FROM review ORDER BY date_time DESC LIMIT 6";
-$reviews_result = mysqli_query($con, $reviewQuery);
-
-// Fetch Dynamic Stats
-$countUsers = mysqli_fetch_assoc(mysqli_query($con, "SELECT COUNT(*) as total FROM users"))['total'] + 1200; // Offset for aesthetic
-$countTrips = mysqli_fetch_assoc(mysqli_query($con, "SELECT COUNT(*) as total FROM trips"))['total'];
-$countAgents = mysqli_fetch_assoc(mysqli_query($con, "SELECT COUNT(*) as total FROM agent"))['total'];
-$countReviews = mysqli_fetch_assoc(mysqli_query($con, "SELECT COUNT(*) as total FROM review"))['total'] + 450;
-
-// Fetch active wishlist if logged in
-$user_wishlist = [];
-if (isset($_SESSION['userid'])) {
-    $uid = $_SESSION['userid'];
-    $wRes = mysqli_query($con, "SELECT trip_id FROM wishlist WHERE user_id = $uid");
-    while($wRow = mysqli_fetch_assoc($wRes)) {
-        $user_wishlist[] = $wRow['trip_id'];
-    }
-}
+$pageTitle = "Home | ExpenseVoyage - Best Travel Trips";
+$currentPage = "index";
+include 'header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>ExpenseVoyage | Premium Travel Experiences</title>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    
-    <!-- Google Web Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
-    
-    <!-- External Libraries -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-    
-    <!-- Custom CSS -->
-    <link href="css/custom.css" rel="stylesheet">
-    
-    <style>
-        .hero-section {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(rgba(248, 250, 252, 0.4), rgba(248, 250, 252, 0.6)), 
-                        url('img/carousel-1.jpg') center/cover no-repeat;
-            text-align: center;
-        }
-
-        .section-padding {
-            padding: 100px 0;
-        }
-
-        .trip-card {
-            border: none;
-            overflow: hidden;
-            background: #fff;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .trip-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-        }
-
-        .trip-image {
-            height: 300px;
-            object-fit: cover;
-            transition: transform 1.2s ease;
-        }
-
-        .trip-card:hover .trip-image {
-            transform: scale(1.1);
-        }
-
-        .stat-card {
-            background: #fff;
-            border-radius: 20px;
-            padding: 40px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
-            border: 1px solid var(--glass-border);
-        }
-
-        .category-card {
-            height: 400px;
-            position: relative;
-            overflow: hidden;
-            border-radius: 24px;
-            display: flex;
-            align-items: flex-end;
-            padding: 30px;
-            color: white;
-            text-decoration: none;
-            transition: all 0.5s ease;
-        }
-
-        .category-card::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-            z-index: 1;
-        }
-
-        .category-card img {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.8s ease;
-        }
-
-        .category-card:hover img {
-            transform: scale(1.1);
-        }
-
-        .category-content {
-            position: relative;
-            z-index: 2;
-        }
-
-        .step-icon {
-            width: 80px;
-            height: 80px;
-            background: rgba(79, 70, 229, 0.1);
-            color: var(--primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            margin: 0 auto 25px;
-        }
-
-        .newsletter-section {
-            background: linear-gradient(135deg, var(--primary), #4338ca);
-            border-radius: 40px;
-            padding: 80px;
-            color: white;
-        }
-
-        .social-img {
-            aspect-ratio: 1;
-            object-fit: cover;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: opacity 0.3s;
-        }
-
-        .social-img:hover {
-            opacity: 0.8;
-        }
-
-        .wishlist-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            z-index: 10;
-            background: rgba(255, 255, 255, 0.9);
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: none;
-            color: #ccc;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-
-        .wishlist-btn:hover {
-            transform: scale(1.1);
-            background: #fff;
-        }
-
-        .wishlist-btn.active {
-            color: #ff4757;
-            background: #fff;
-        }
-
-        .trip-card {
-            overflow: hidden;
-            position: relative;
-        }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg sticky-top">
-        <div class="container">
-            <a href="index.php" class="navbar-brand fs-2 fw-bold">
-                <span class="text-primary">Expense</span><span class="text-dark">Voyage</span>
-            </a>
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
-                <i class="fas fa-bars text-dark"></i>
-            </button>
-            <div class="collapse navbar-collapse" id="nav">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link px-3 active" href="index.php">Home</a></li>
-                    <li class="nav-item"><a class="nav-link px-3" href="package.php">Packages</a></li>
-                    <li class="nav-item"><a class="nav-link px-3" href="about.php">Our Story</a></li>
-                    <li class="nav-item"><a class="nav-link px-3" href="contact.php">Contact</a></li>
-                    <?php if (isset($_SESSION['email'])): ?>
-                        <li class="nav-item dropdown ms-lg-3">
-                            <a class="nav-link dropdown-toggle text-primary fw-bold" href="#" data-bs-toggle="dropdown">
-                                <?php echo htmlspecialchars($_SESSION['name'] ?? 'Voyager'); ?>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg p-3">
-                                <li><a class="dropdown-item py-2" href="user-profile.php"><i class="fas fa-user-circle me-2"></i> Profile</a></li>
-                                <?php if(($_SESSION['role'] ?? '') == 'admin'): ?>
-                                    <li><a class="dropdown-item py-2 text-primary" href="admin/index.php"><i class="fas fa-user-shield me-2"></i> Admin Panel</a></li>
-                                <?php elseif(($_SESSION['role'] ?? '') == 'agent'): ?>
-                                    <li><a class="dropdown-item py-2 text-primary" href="agent_dashboard.php"><i class="fas fa-briefcase me-2"></i> Agent Dashboard</a></li>
-                                <?php endif; ?>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item py-2 text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
-                            </ul>
-                        </li>
-                    <?php endif; ?>
-                </ul>
+    <!-- Ultra-Luxe 3.0 Trending Hero -->
+    <section class="hero-section trending-hero" style="height: 100vh;">
+        <div id="hero-bg" class="hero-bg ken-burns" style="background-image: url('img/carousel-1.jpg');"></div>
+        <div class="hero-overlay"></div>
+        
+        <div class="container h-100 d-flex align-items-center">
+            <div class="row w-100">
+                <div class="col-lg-8">
+                    <div class="hero-content-trending reveal-up">
+                        <span class="trending-badge mb-4 d-inline-block">Volume 2026 • Expedition Elite</span>
+                        <h1 class="hero-title-main mb-4">The Art of <br> <span class="text-gold">Voyage</span></h1>
+                        <p class="hero-desc mb-5">Crafting hyper-exclusive travel experiences for the modern explorer. Redefining luxury through trending aesthetics and curated adventures.</p>
+                        
+                        <div class="hero-actions d-flex gap-4">
+                            <a href="package.php" class="btn-luxe btn-luxe-gold">Explore Collection</a>
+                            <a href="about.php" class="btn-luxe btn-luxe-outline">Our Story</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </nav>
-
-    <!-- Cinematic Hero -->
-    <section class="hero-section">
-        <div class="container">
-            <h1 class="display-1 serif-font text-dark animate__animated animate__fadeInUp">Journeys Beyond <br> Imagination</h1>
-            <p class="lead text-muted mt-4 fs-4 animate__animated animate__fadeInUp animate__delay-1s">Hand-crafted travel experiences for the discerning soul.</p>
-            <div class="mt-5 animate__animated animate__fadeInUp animate__delay-2s">
-                <a href="#packages" class="btn btn-outline-indigo px-5 py-3 me-3">EXPLORE</a>
-                <a href="contact.php" class="btn btn-primary px-5 py-3">INQUIRE</a>
-            </div>
-        </div>
+        
+        <!-- Trending Decorative Elements -->
+        <div class="hero-decorative-text d-none d-lg-block">EXPENSEVOYAGE ©</div>
     </section>
-
-    <!-- Booking Overlay -->
-    <div class="container" style="margin-top: -80px; position: relative; z-index: 10;">
-        <div class="glass-panel p-5 animate-on-scroll shadow-lg" data-animation="animate__fadeInUp">
-            <form action="package.php" method="GET" class="row g-4 align-items-end">
-                <div class="col-lg-4">
-                    <label class="text-primary small text-uppercase fw-bold mb-2">Destination</label>
-                    <input type="text" name="destination" class="form-control bg-light border-0 py-3" placeholder="Where do you crave to go?">
-                </div>
-                <div class="col-lg-3">
-                    <label class="text-primary small text-uppercase fw-bold mb-2">Voyage Date</label>
-                    <input type="date" class="form-control bg-light border-0 py-3">
-                </div>
-                <div class="col-lg-3">
-                    <label class="text-primary small text-uppercase fw-bold mb-2">Voyage Type</label>
-                    <select name="type" class="form-select bg-light border-0 py-3">
-                        <option value="all">Global Collection</option>
-                        <option value="local">Local (Pakistan)</option>
-                        <option value="international">Overseas / International</option>
-                    </select>
-                </div>
-                <div class="col-lg-2">
-                    <button type="submit" class="btn btn-primary w-100 py-3 mt-lg-0">SEARCH</button>
-                </div>
-            </form>
+    <!-- Cinematic Marquee -->
+    <div class="cinematic-marquee">
+        <div class="marquee-content">
+            <span class="marquee-text">Adventure Awaits</span>
+            <span class="marquee-text">•</span>
+            <span class="marquee-text">Luxury Travel</span>
+            <span class="marquee-text">•</span>
+            <span class="marquee-text">Exotic Locations</span>
+            <span class="marquee-text">•</span>
+            <span class="marquee-text">Ultimate Ease</span>
+            <span class="marquee-text">•</span>
+            <!-- Duplicated for seamless loop -->
+            <span class="marquee-text">Adventure Awaits</span>
+            <span class="marquee-text">•</span>
+            <span class="marquee-text">Luxury Travel</span>
+            <span class="marquee-text">•</span>
+            <span class="marquee-text">Exotic Locations</span>
+            <span class="marquee-text">•</span>
+            <span class="marquee-text">Ultimate Ease</span>
+            <span class="marquee-text">•</span>
         </div>
     </div>
 
     <!-- Stats Section -->
-    <section class="section-padding">
-        <div class="container">
+    <section class="section-padding bg-deep position-relative">
+        <div class="container reveal-up">
             <div class="row g-4 text-center">
-                <div class="col-lg-3 col-6 animate-on-scroll">
-                    <div class="stat-card">
-                        <h2 class="display-5 fw-bold text-primary mb-2"><?php echo number_format($countUsers); ?>+</h2>
-                        <p class="text-muted text-uppercase small tracking-widest mb-0">Epic Travelers</p>
+                <div class="col-md-3">
+                    <h2 class="display-4 serif-font text-gold mb-1"><?php echo number_format($countTrips); ?>+</h2>
+                    <p class="text-ghost text-uppercase tracking-widest small">Total Trips</p>
+                </div>
+                <div class="col-md-3">
+                    <h2 class="display-4 serif-font text-gold mb-1"><?php echo number_format($countUsers); ?>+</h2>
+                    <p class="text-ghost text-uppercase tracking-widest small">Happy Travelers</p>
+                </div>
+                <div class="col-md-3">
+                    <h2 class="display-4 serif-font text-gold mb-1"><?php echo number_format($countAgents); ?>+</h2>
+                    <p class="text-ghost text-uppercase tracking-widest small">Expert Guides</p>
+                </div>
+                <div class="col-md-3">
+                    <h2 class="display-4 serif-font text-gold mb-1">24/7</h2>
+                    <p class="text-ghost text-uppercase tracking-widest small">Support Service</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bento Featured Collections -->
+    <section class="section-padding bg-deep">
+        <div class="container">
+            <div class="row align-items-end mb-5 reveal-up">
+                <div class="col-lg-6">
+                    <h6 class="text-gold text-uppercase tracking-widest fw-bold mb-3 small">Top Destinations</h6>
+                    <h2 class="display-4 serif-font text-white">Luxury <br> <span class="text-gold">Collections</span></h2>
+                </div>
+                <div class="col-lg-6 text-lg-end">
+                    <p class="text-muted mb-4" style="max-width: 450px; margin-left: auto;">Experience the world's most exclusive destinations with our trending bento curation.</p>
+                </div>
+            </div>
+
+            <div class="bento-grid">
+                <!-- Large Feature -->
+                <div class="bento-item bento-item-large reveal-up">
+                    <div class="category-card h-100">
+                        <div class="pulsar-badge">
+                            <div class="pulsar-dot"></div>
+                            <span class="text-white small fw-bold" style="font-size: 0.6rem;"><?php echo rand(5, 15); ?> People Viewing</span>
+                        </div>
+                        <img src="img/package-1.jpg" alt="Local">
+                        <div class="category-content p-5">
+                            <span class="text-gold text-uppercase tracking-widest small mb-3 d-block">Elite Choices</span>
+                            <h3 class="display-3 serif-font text-white mb-4">Local <br> Gems</h3>
+                            <a href="package.php?type=local" class="btn-luxe btn-luxe-gold px-5">Explore</a>
+                        </div>
                     </div>
                 </div>
-                <div class="col-lg-3 col-6 animate-on-scroll" data-delay="0.2s">
-                    <div class="stat-card">
-                        <h2 class="display-5 fw-bold text-primary mb-2"><?php echo $countTrips; ?>+</h2>
-                        <p class="text-muted text-uppercase small tracking-widest mb-0">Curated Trips</p>
+                
+                <!-- Tall Feature -->
+                <div class="bento-item bento-item-tall reveal-up" style="transition-delay: 0.1s;">
+                    <div class="category-card h-100">
+                        <img src="img/package-2.jpg" alt="International">
+                        <div class="category-content p-4">
+                            <span class="text-gold text-uppercase tracking-widest small mb-2 d-block">Global</span>
+                            <h3 class="display-6 serif-font text-white mb-3">Global <br> Reach</h3>
+                            <a href="package.php?type=international" class="btn-luxe btn-luxe-outline x-small">Details</a>
+                        </div>
                     </div>
                 </div>
-                <div class="col-lg-3 col-6 animate-on-scroll" data-delay="0.4s">
-                    <div class="stat-card">
-                        <h2 class="display-5 fw-bold text-primary mb-2"><?php echo $countAgents; ?>+</h2>
-                        <p class="text-muted text-uppercase small tracking-widest mb-0">Elite Agents</p>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-6 animate-on-scroll" data-delay="0.6s">
-                    <div class="stat-card">
-                        <h2 class="display-5 fw-bold text-primary mb-2"><?php echo number_format($countReviews); ?>+</h2>
-                        <p class="text-muted text-uppercase small tracking-widest mb-0">Luxury Reviews</p>
+
+                <!-- Wide Feature -->
+                <div class="bento-item bento-item-wide reveal-up" style="transition-delay: 0.2s;">
+                    <div class="category-card h-100">
+                        <img src="img/about.jpg" alt="Experience">
+                        <div class="category-content p-4">
+                            <h3 class="display-6 serif-font text-white mb-3">Crafted <br> Experiences</h3>
+                            <p class="text-muted small mb-3">Bespoke travel for the refined spirit.</p>
+                            <a href="about.php" class="text-gold text-uppercase tracking-widest small text-decoration-none fw-bold">Learn More →</a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Trending Categories -->
-    <section class="section-padding pt-0">
+    <!-- Why Choose Us -->
+    <section class="section-padding bg-deep">
         <div class="container">
-            <div class="d-flex justify-content-between align-items-end mb-5 animate-on-scroll">
-                <div>
-                    <h6 class="text-primary text-uppercase tracking-widest mb-3">Styles of Travel</h6>
-                    <h2 class="display-4 serif-font">Popular Journeys</h2>
-                </div>
-                <a href="package.php" class="text-primary fw-bold text-decoration-none mb-2">View All Styles <i class="fas fa-arrow-right ms-1"></i></a>
+            <div class="text-center mb-5 reveal-up">
+                <h6 class="text-gold text-uppercase tracking-widest fw-bold mb-3 small">About Us</h6>
+                <h2 class="display-4 serif-font text-white">Why Book with <span class="text-gold">Us?</span></h2>
             </div>
-            <div class="row g-4">
-                <div class="col-lg-3 col-md-6 animate-on-scroll">
-                    <a href="package.php?style=Beach" class="category-card">
-                        <img src="img/beach.jpg" alt="Beach">
-                        <div class="category-content">
-                            <h4 class="h5 mb-1">Pristine Shores</h4>
-                            <p class="small mb-0 opacity-75">12+ Destinations</p>
-                        </div>
-                    </a>
+            
+            <div class="row g-5 mt-4">
+                <div class="col-lg-4 reveal-up">
+                    <div class="glass-card p-5 h-100">
+                        <div class="mb-4 fs-1 text-gold"><i class="fas fa-gem"></i></div>
+                        <h4 class="serif-font text-white mb-3">Best Prices</h4>
+                        <p class="text-muted">We offer high-quality trips at the best rates in the market.</p>
+                    </div>
                 </div>
-                <div class="col-lg-6 col-md-6 animate-on-scroll" data-delay="0.2s">
-                    <a href="package.php?style=Mountain" class="category-card">
-                        <img src="img/mountain.jpg" alt="Mountain">
-                        <div class="category-content">
-                            <h4 class="h5 mb-1">Alpine Majesty</h4>
-                            <p class="small mb-0 opacity-75">18+ Destinations</p>
-                        </div>
-                    </a>
+                <div class="col-lg-4 reveal-up" style="transition-delay: 0.1s;">
+                    <div class="glass-card p-5 h-100">
+                        <div class="mb-4 fs-1 text-gold"><i class="fas fa-check-circle"></i></div>
+                        <h4 class="serif-font text-white mb-3">Easy Booking</h4>
+                        <p class="text-muted">Our booking process is simple and takes only a few minutes.</p>
+                    </div>
                 </div>
-                <div class="col-lg-3 col-md-6 animate-on-scroll" data-delay="0.4s">
-                    <a href="package.php?style=City" class="category-card">
-                        <img src="img/city.jpg" alt="City">
-                        <div class="category-content">
-                            <h4 class="h5 mb-1">Urban Sophistication</h4>
-                            <p class="small mb-0 opacity-75">24+ Destinations</p>
-                        </div>
-                    </a>
+                <div class="col-lg-4 reveal-up" style="transition-delay: 0.2s;">
+                    <div class="glass-card p-5 h-100">
+                        <div class="mb-4 fs-1 text-gold"><i class="fas fa-headset"></i></div>
+                        <h4 class="serif-font text-white mb-3">24/7 Support</h4>
+                        <p class="text-muted">Our friendly support team is always ready to help you.</p>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Featured Packages -->
-    <section id="packages" class="section-padding bg-light">
+    <!-- Modern FAQ Section -->
+    <section class="section-padding bg-deep">
         <div class="container">
-            <div class="text-center mb-5 animate-on-scroll">
-                <h6 class="text-primary text-uppercase tracking-widest mb-3">The Extraordinary</h6>
-                <h2 class="display-4 serif-font">Featured Voyages</h2>
+            <div class="text-center mb-5 reveal-up">
+                <h6 class="text-gold text-uppercase tracking-widest fw-bold mb-3 small">Concierge AI</h6>
+                <h2 class="display-4 serif-font text-white">Common <span class="text-gold">Questions</span></h2>
             </div>
-            <div class="row g-4">
-                <?php while($trip = mysqli_fetch_assoc($trips_result)): ?>
-                    <div class="col-lg-4 col-md-6 animate-on-scroll">
-                        <div class="trip-card h-100 shadow-sm border-0 rounded-4">
-                            <div class="overflow-hidden position-relative">
-                                <button class="wishlist-btn <?php echo in_array($trip['trip_id'], $user_wishlist) ? 'active' : ''; ?>" 
-                                        onclick="toggleWishlist(this, <?php echo $trip['trip_id']; ?>)">
-                                    <i class="fas fa-heart"></i>
+
+            <div class="row justify-content-center">
+                <div class="col-lg-8 reveal-up">
+                    <div class="accordion faq-accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#q1">
+                                    How do I book a private tour?
                                 </button>
-                                <img src="<?php echo htmlspecialchars($trip['trip_image']); ?>" class="trip-image w-100" alt="Trip">
-                            </div>
-                            <div class="p-4 bg-white">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <span class="text-primary fw-bold fs-4">$<?php echo number_format($trip['budget']); ?></span>
-                                    <small class="text-muted"><i class="far fa-clock me-1"></i> <?php echo $trip['duration_days']; ?> Days</small>
-                                </div>
-                                <h4 class="serif-font mb-3 h5"><?php echo htmlspecialchars($trip['trip_name']); ?></h4>
-                                <p class="text-muted small mb-4"><?php echo substr(htmlspecialchars($trip['description']), 0, 100); ?>...</p>
-                                <a href="trip_details.php?id=<?php echo $trip['trip_id']; ?>" class="btn btn-outline-primary w-100 rounded-3">Explore Voyage</a>
-                            </div>
-                        </div>
-                    </div>
-                <?php endwhile; ?>
-            </div>
-        </div>
-    </section>
-
-    <!-- How It Works -->
-    <section class="section-padding">
-        <div class="container text-center">
-            <h6 class="text-primary text-uppercase tracking-widest mb-3">The Journey</h6>
-            <h2 class="display-4 serif-font mb-5">How It Works</h2>
-            <div class="row g-5">
-                <div class="col-md-4 animate-on-scroll">
-                    <div class="step-icon"><i class="fas fa-search"></i></div>
-                    <h4 class="serif-font">Choose</h4>
-                    <p class="text-muted">Explore our curated collections of bespoke travel experiences.</p>
-                </div>
-                <div class="col-md-4 animate-on-scroll" data-delay="0.2s">
-                    <div class="step-icon"><i class="fas fa-user-check"></i></div>
-                    <h4 class="serif-font">Consult</h4>
-                    <p class="text-muted">Connect with our elite agents to customize every detail.</p>
-                </div>
-                <div class="col-md-4 animate-on-scroll" data-delay="0.4s">
-                    <div class="step-icon"><i class="fas fa-plane-takeoff"></i></div>
-                    <h4 class="serif-font">Voyage</h4>
-                    <p class="text-muted">Depart on your dream journey with 24/7 concierge support.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Elite Agents -->
-    <section class="section-padding bg-light">
-        <div class="container">
-            <div class="text-center mb-5 animate-on-scroll">
-                <h6 class="text-primary text-uppercase tracking-widest mb-3">The Experts</h6>
-                <h2 class="display-4 serif-font">Masters of Luxury</h2>
-            </div>
-            <div class="row g-4">
-                <?php while($agent = mysqli_fetch_assoc($agents_result)): ?>
-                    <div class="col-lg-3 col-md-6 animate-on-scroll">
-                        <div class="card border-0 shadow-sm rounded-4 text-center p-4 h-100">
-                            <img src="admin/user/<?php echo htmlspecialchars($agent['a_image']); ?>" class="rounded-circle mx-auto mb-3" style="width: 120px; height: 120px; object-fit: cover;" alt="Agent">
-                            <h5 class="serif-font mb-1"><?php echo htmlspecialchars($agent['a_name']); ?></h5>
-                            <p class="text-primary small text-uppercase mb-3"><?php echo htmlspecialchars($agent['a_profetion'] ?? 'Global Specialist'); ?></p>
-                            <div class="d-flex justify-content-center gap-2 mt-auto">
-                                <a href="contact.php" class="btn btn-outline-primary btn-sm rounded-pill px-3">Consult Now</a>
-                            </div>
-                        </div>
-                    </div>
-                <?php endwhile; ?>
-            </div>
-        </div>
-    </section>
-
-    <!-- Professional Testimonials -->
-    <section class="section-padding">
-        <div class="container">
-            <div class="text-center mb-5 animate-on-scroll">
-                <h6 class="text-primary text-uppercase tracking-widest mb-3">Client Whispers</h6>
-                <h2 class="display-4 serif-font">Traveler Chronicles</h2>
-            </div>
-            <div id="testimonialSlider" class="carousel slide" data-bs-ride="carousel">
-                <div class="carousel-inner">
-                    <?php 
-                    $first = true;
-                    while($review = mysqli_fetch_assoc($reviews_result)): 
-                    ?>
-                        <div class="carousel-item <?php echo $first ? 'active' : ''; ?>">
-                            <div class="row justify-content-center text-center">
-                                <div class="col-lg-8">
-                                    <div class="mb-4">
-                                        <?php for($i=0; $i<5; $i++) echo '<i class="fas fa-star text-primary small"></i>'; ?>
-                                    </div>
-                                    <h3 class="serif-font fst-italic mb-4">"<?php echo htmlspecialchars($review['usermessage']); ?>"</h3>
-                                    <div class="d-flex align-items-center justify-content-center">
-                                        <div class="ms-3 text-start">
-                                            <h5 class="mb-0"><?php echo htmlspecialchars($review['username'] ?? $review['email']); ?></h5>
-                                            <small class="text-muted">Voyager Since <?php echo date('Y', strtotime($review['date_time'])); ?></small>
-                                        </div>
-                                    </div>
+                            </h2>
+                            <div id="q1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Simply browse our collections, select your desired package, and click 'Book Now'. Our concierge team will handle the rest of the arrangements for you.
                                 </div>
                             </div>
                         </div>
-                    <?php 
-                    $first = false;
-                    endwhile; 
-                    ?>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q2">
+                                    Are customized luxury trips available?
+                                </button>
+                            </h2>
+                            <div id="q2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Absolutely. We specialize in bespoke travel. Contact our 24/7 support or use the chatbot to start crafting your unique itinerary.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q3">
+                                    What is the cancellation policy?
+                                </button>
+                            </h2>
+                            <div id="q3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    We offer flexible cancellation policies for most elite packages. Generally, cancellations 14 days prior to departure are eligible for a full credit.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <button class="carousel-control-prev" type="button" data-bs-target="#testimonialSlider" data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon bg-primary rounded-circle"></span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#testimonialSlider" data-bs-slide="next">
-                    <span class="carousel-control-next-icon bg-primary rounded-circle"></span>
-                </button>
             </div>
         </div>
     </section>
 
-    <!-- Newsletter & Social Proof -->
-    <section class="section-padding pt-0">
-        <div class="container">
-            <div class="newsletter-section animate-on-scroll">
+    <!-- Testimonial Section -->
+    <section class="section-padding bg-deep position-relative">
+        <div class="container reveal-up">
+            <div class="glass-card testimonial-card overflow-hidden position-relative">
                 <div class="row align-items-center">
-                    <div class="col-lg-6 mb-4 mb-lg-0">
-                        <h2 class="serif-font display-5 mb-3">Join the Elite</h2>
-                        <p class="mb-0 opacity-75">Subscribe for secret departures and exclusive travel insights.</p>
+                    <div class="col-lg-7">
+                        <div class="fs-1 text-primary opacity-20 mb-4"><i class="fas fa-quote-left"></i></div>
+                        <?php
+                        $rev_res = mysqli_query($con, "SELECT * FROM review ORDER BY date_time DESC LIMIT 1");
+                        if ($rev_row = mysqli_fetch_assoc($rev_res)):
+                        ?>
+                            <h2 class="serif-font text-white display-5 mb-5">"<?php echo htmlspecialchars($rev_row['usermessage']); ?>"</h2>
+                            <div class="d-flex align-items-center gap-4">
+                                <img src="img/Ali.jpg" class="rounded-pill" style="width: 80px; height: 80px; object-fit: cover;" alt="Client">
+                                <div>
+                                    <h6 class="text-white mb-1"><?php echo htmlspecialchars($rev_row['username']); ?></h6>
+                                    <p class="text-gold text-uppercase tracking-widest small mb-0">Satisfied Traveler</p>
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <h2 class="serif-font text-white display-5 mb-5">"This was the best trip of my life. Everything was perfect from start to finish."</h2>
+                            <div class="d-flex align-items-center gap-4">
+                                <img src="img/Ali.jpg" class="rounded-pill" style="width: 80px; height: 80px; object-fit: cover;" alt="Client">
+                                <div>
+                                    <h6 class="text-white mb-1">John Doe</h6>
+                                    <p class="text-gold text-uppercase tracking-widest small mb-0">Satisfied Traveler</p>
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     </div>
-                    <div class="col-lg-6">
-                        <form class="d-flex gap-2">
-                            <input type="email" class="form-control bg-white border-0 py-3" placeholder="Elite Email Address">
-                            <button class="btn btn-dark px-4">JOIN</button>
-                        </form>
+                    <div class="col-lg-5 d-none d-lg-block">
+                        <img src="img/about.jpg" class="w-100 rounded-4 shadow-extreme" style="transform: rotate(2deg);" alt="Experience">
                     </div>
-                </div>
-            </div>
-
-            <div class="mt-5 text-center section-padding">
-                <h6 class="text-primary text-uppercase tracking-widest mb-4">Follow the Journey @ExpenseVoyage</h6>
-                <div class="row g-3">
-                    <div class="col-lg-2 col-4"><img src="img/social-1.jpg" class="social-img w-100" alt="Travel"></div>
-                    <div class="col-lg-2 col-4"><img src="img/social-2.jpg" class="social-img w-100" alt="Travel"></div>
-                    <div class="col-lg-2 col-4"><img src="img/social-3.jpg" class="social-img w-100" alt="Travel"></div>
-                    <div class="col-lg-2 col-4"><img src="img/social-4.jpg" class="social-img w-100" alt="Travel"></div>
-                    <div class="col-lg-2 col-4"><img src="img/social-5.jpg" class="social-img w-100" alt="Travel"></div>
-                    <div class="col-lg-2 col-4"><img src="img/social-6.jpg" class="social-img w-100" alt="Travel"></div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="section-padding border-top bg-white">
-        <div class="container">
-            <div class="row g-5">
-                <div class="col-lg-4">
-                    <h3 class="text-primary mb-4">ExpenseVoyage</h3>
-                    <p class="text-muted">Curating bespoke travel experiences for those who seek the extraordinary. Our mission is to transform your dreams into cinematic realities.</p>
-                </div>
-                <div class="col-lg-2 ms-auto">
-                    <h5 class="text-dark mb-4">Quick Links</h5>
-                    <ul class="list-unstyled">
-                        <li class="mb-2"><a href="package.php" class="text-muted text-decoration-none hover-primary">Packages</a></li>
-                        <li class="mb-2"><a href="about.php" class="text-muted text-decoration-none hover-primary">About Us</a></li>
-                        <li class="mb-2"><a href="contact.php" class="text-muted text-decoration-none hover-primary">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-4">
-                    <h5 class="text-dark mb-4">Follow Our Journey</h5>
-                    <div class="d-flex gap-3">
-                        <a href="#" class="btn btn-outline-indigo rounded-circle p-2"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="btn btn-outline-indigo rounded-circle p-2"><i class="fab fa-facebook-p"></i></a>
-                        <a href="#" class="btn btn-outline-indigo rounded-circle p-2"><i class="fab fa-twitter"></i></a>
-                    </div>
-                </div>
-            </div>
-            <div class="text-center mt-5 pt-5 text-muted small">
-                &copy; 2026 ExpenseVoyage. Bespoke Travel Excellence.
-            </div>
-        </div>
-    </footer>
-
-    <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/custom.js"></script>
-    <script>
-        function toggleWishlist(btn, tripId) {
-            <?php if (!isset($_SESSION['userid'])): ?>
-                window.location.href = 'login/account.php';
-                return;
-            <?php endif; ?>
-
-            $.ajax({
-                url: 'wishlist-handler.php',
-                method: 'POST',
-                data: { trip_id: tripId, action: 'toggle' },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.status === 'added') {
-                        $(btn).addClass('active');
-                    } else if (response.status === 'removed') {
-                        $(btn).removeClass('active');
-                    } else if (response.status === 'error') {
-                        alert(response.message);
-                    }
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+<?php include 'footer.php'; ?>

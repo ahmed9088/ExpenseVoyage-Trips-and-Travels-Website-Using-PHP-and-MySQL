@@ -120,156 +120,104 @@ if (isset($_GET['error'])) {
     <link rel="icon" type="image/png" sizes="16x16" href="../img/favicon-16x16.png">
     <link rel="manifest" href="../img/site.webmanifest">
     
-    <!-- Google Web Fonts -->
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Animate.css -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-    
-    <!-- Particles.js for animated background -->
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <!-- Custom Design System -->
+    <link href="../css/custom.css" rel="stylesheet">
     
     <style>
-        :root {
-            --primary: #4361ee;
-            --secondary: #3f37c9;
-            --accent: #4cc9f0;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
-            --gradient-light: linear-gradient(120deg, rgba(67, 97, 238, 0.1), rgba(76, 201, 240, 0.1));
-            --success: #10b981;
-            --error: #ef4444;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
         body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f5f7ff;
-            min-height: 100vh;
+            background: #0f172a;
             display: flex;
-            justify-content: center;
             align-items: center;
-            overflow-x: hidden;
-            position: relative;
+            justify-content: center;
+            min-height: 100vh;
         }
-        
-        /* Animated Background */
+
         #particles-js {
             position: fixed;
-            width: 100%;
-            height: 100%;
             top: 0;
             left: 0;
-            z-index: -1;
-            background: linear-gradient(135deg, #1a1c20, #2d3436);
-        }
-        
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 5px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--secondary);
-        }
-        
-        /* Main Container */
-        .container {
             width: 100%;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-            position: relative;
-            z-index: 1;
+            height: 100%;
+            z-index: 0;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
         }
-        
-        /* Auth Container */
+
         .auth-container {
+            z-index: 1;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-premium);
             overflow: hidden;
             display: flex;
+            max-width: 1000px;
+            width: 95%;
             min-height: 600px;
-            animation: fadeInUp 0.6s ease forwards;
         }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Auth Image Section */
+
         .auth-image {
-            flex: 1;
-            background: var(--gradient);
+            background-image: url('../img/login-bg.jpg');
+            background-size: cover;
+            background-position: center;
             position: relative;
-            overflow: hidden;
+            flex: 1;
             display: flex;
-            flex-direction: column;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             padding: 40px;
             color: white;
         }
-        
+
         .auth-image::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('../img/login-bg.jpg') no-repeat center center/cover;
-            opacity: 0.2;
-            mix-blend-mode: overlay;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(67, 56, 202, 0.8), rgba(15, 23, 42, 0.9));
         }
-        
+
         .auth-image-content {
             position: relative;
-            z-index: 1;
+            z-index: 2;
             text-align: center;
-            max-width: 400px;
         }
-        
-        .auth-image-content h2 {
-            font-size: 36px;
-            font-weight: 700;
-            margin-bottom: 20px;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+
+        .auth-form {
+            flex: 1;
+            padding: 50px;
+            background: white;
         }
-        
-        .auth-image-content p {
-            font-size: 16px;
-            line-height: 1.6;
-            margin-bottom: 30px;
-            opacity: 0.9;
+
+        .form-control {
+            border: 1px solid rgba(0,0,0,0.08);
+            padding: 15px 20px;
+            border-radius: var(--radius-md);
+            background: var(--bg-light);
+            transition: all 0.3s ease;
         }
+
+        .form-control:focus {
+            background: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(67, 56, 202, 0.1);
+        }
+
+        .social-btn {
+            border: 1px solid rgba(0,0,0,0.05);
+            padding: 12px;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .social-btn:hover {
+            background: var(--bg-light);
+            transform: translateY(-2px);
+        }
+    </style>
         
         /* Auth Form Section */
         .auth-form {
@@ -711,9 +659,9 @@ if (isset($_GET['error'])) {
             <!-- Auth Image Section -->
             <div class="auth-image">
                 <div class="auth-image-content">
-                    <h2>Welcome to ExpenseVoyage</h2>
-                    <p>Discover amazing destinations and create unforgettable memories with our premium travel experiences.</p>
-                    <button class="btn btn-outline" id="switchToRegister">Create Account</button>
+                    <h2 class="serif-font">Welcome to ExpenseVoyage</h2>
+                    <p class="text-white-50">Discover amazing destinations and create unforgettable memories with our premium travel experiences.</p>
+                    <button class="btn btn-outline-light px-5 py-3 rounded-pill" id="switchToRegister">Create Account</button>
                 </div>
             </div>
             
@@ -753,7 +701,7 @@ if (isset($_GET['error'])) {
                             <a href="forget_password.php" class="forgot-link">Forgot Password?</a>
                         </div>
                         
-                        <button type="submit" name="login" class="btn btn-primary">Sign In</button>
+                        <button type="submit" name="login" class="btn btn-primary btn-premium-glow w-100 py-3">Sign In</button>
                     </form>
                     
                     <div class="divider">

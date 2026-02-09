@@ -67,43 +67,36 @@ if ($show_form && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['reset_pa
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --gold: #d4af37;
-            --gold-dark: #aa8822;
-            --dark-bg: #0f1012;
-            --glass: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-        }
-
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--dark-bg);
-            color: #fff;
-            min-height: 100vh;
+            background: #0f172a;
             display: flex;
             align-items: center;
             justify-content: center;
+            min-height: 100vh;
             margin: 0;
             overflow: hidden;
         }
 
-        .bg-glow {
+        #particles-js {
             position: fixed;
-            width: 100vw;
-            height: 100vh;
-            background: radial-gradient(circle at 50% 50%, #1a1c20 0%, #0f1012 100%);
-            z-index: -1;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
         }
 
         .container {
+            z-index: 1;
             width: 90%;
             max-width: 450px;
-            background: var(--glass);
+            background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-xl);
             padding: 50px 40px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            box-shadow: var(--shadow-premium);
         }
 
         h1 {
@@ -111,90 +104,86 @@ if ($show_form && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['reset_pa
             font-size: 32px;
             margin-bottom: 30px;
             text-align: center;
-            background: linear-gradient(to right, #fff, var(--gold));
+            background: linear-gradient(to right, #fff, var(--primary-light));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .form-group {
-            margin-bottom: 25px;
-        }
-
-        label {
+        .form-group label {
             display: block;
             margin-bottom: 10px;
-            font-size: 14px;
+            font-size: 12px;
             text-transform: uppercase;
-            color: var(--gold);
-        }
-
-        .input-wrapper {
-            position: relative;
+            color: var(--primary-light);
+            letter-spacing: 1.5px;
+            font-weight: 600;
         }
 
         input {
             width: 100%;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
             padding: 15px 15px 15px 45px;
             color: #fff;
-            box-sizing: border-box;
-            transition: 0.3s;
+            transition: all 0.3s ease;
         }
 
         input:focus {
             outline: none;
-            border-color: var(--gold);
+            border-color: var(--primary-light);
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .input-wrapper i {
             position: absolute;
             left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--gold);
+            top: 18px;
+            color: var(--primary-light);
+            opacity: 0.8;
         }
 
         .btn {
             width: 100%;
-            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            background: var(--primary);
+            color: white;
             padding: 15px;
             border: none;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             font-weight: 700;
-            color: #000;
-            cursor: pointer;
             text-transform: uppercase;
             letter-spacing: 2px;
-            transition: 0.3s;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
         .btn:hover {
             transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(212, 175, 55, 0.2);
+            box-shadow: 0 10px 20px rgba(67, 56, 202, 0.3);
         }
-
-        .notification {
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 25px;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        .notification.success { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
-        .notification.error { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
 
         .success-flow { text-align: center; }
-        .success-flow i { font-size: 60px; color: var(--gold); margin-bottom: 20px; }
+        .success-flow i { font-size: 60px; color: var(--primary-light); margin-bottom: 20px; }
     </style>
 </head>
 <body>
-    <div class="bg-glow"></div>
+    <!-- Animated Background -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <div id="particles-js"></div>
+    <script>
+        particlesJS("particles-js", {
+            "particles": {
+                "number": { "value": 80 },
+                "color": { "value": "#ffffff" },
+                "opacity": { "value": 0.1 },
+                "size": { "value": 2 },
+                "line_linked": { "enable": true, "distance": 150, "color": "#ffffff", "opacity": 0.05, "width": 1 }
+            }
+        });
+    </script>
 
     <div class="container animate__animated animate__fadeIn">
-        <h1>New Credentials</h1>
+        <h1 class="serif-font">New Credentials</h1>
 
         <?php if ($notification): ?>
             <div class="notification <?= $notification_type ?>">
@@ -229,7 +218,7 @@ if ($show_form && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['reset_pa
                     </div>
                 </div>
 
-                <button type="submit" name="reset_password" class="btn">Confirm Change</button>
+                <button type="submit" name="reset_password" class="btn btn-premium-glow">Confirm Change</button>
             </form>
         <?php else: ?>
             <div style="text-align: center;">

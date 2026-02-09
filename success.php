@@ -40,109 +40,44 @@ if (isset($_SESSION['booking_success'])) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     
     <style>
-        :root {
-            --primary: #4f46e5;
-            --slate: #0f172a;
-            --indigo-light: #e0e7ff;
-        }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #f8fafc;
-            color: var(--slate);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .serif-font {
-            font-family: 'Playfair Display', serif;
-        }
-
         .success-card {
-            background: white;
-            border-radius: 30px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-premium);
             max-width: 650px;
             width: 95%;
             overflow: hidden;
-            border: 1px solid #e2e8f0;
+            border: none;
+            background: white;
         }
 
         .check-header {
-            background: linear-gradient(135deg, #4f46e5, #818cf8);
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
             padding: 60px 20px;
             text-align: center;
             color: white;
         }
 
-        .check-icon {
-            font-size: 70px;
-            margin-bottom: 20px;
-        }
-
         .ticket-body {
-            padding: 50px;
+            padding: 40px;
         }
 
         .info-row {
             display: flex;
             justify-content: space-between;
             padding: 15px 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .info-row:last-child {
-            border-bottom: none;
-        }
-
-        .label {
-            color: #64748b;
-            text-transform: uppercase;
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            font-weight: 700;
-        }
-
-        .value {
-            font-weight: 600;
-            color: var(--slate);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
         }
 
         .hash-box {
-            background: var(--indigo-light);
+            background: var(--bg-light);
             padding: 15px;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             font-family: monospace;
             font-size: 10px;
             word-break: break-all;
             color: var(--primary);
             margin-top: 20px;
-        }
-
-        .btn-voyage {
-            padding: 15px 30px;
-            border-radius: 12px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-primary-voyage {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-outline-voyage {
-            border: 1px solid #e2e8f0;
-            color: #64748b;
-        }
-
-        .btn-voyage:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            border: 1px solid rgba(67, 56, 202, 0.1);
         }
     </style>
 </head>
@@ -184,8 +119,8 @@ if (isset($_SESSION['booking_success'])) {
             </div>
 
             <div class="d-flex gap-3 mt-5">
-                <a href="index.php" class="btn-voyage btn-primary-voyage shadow-sm">Home</a>
-                <a href="user-profile.php" class="btn-voyage btn-outline-voyage">My Expeditions</a>
+                <a href="index.php" class="btn btn-primary px-5 py-3 btn-premium-glow shadow-sm">Home</a>
+                <a href="user-profile.php" class="btn btn-outline-primary px-5 py-3 rounded-pill">My Expeditions</a>
             </div>
         </div>
     </div>

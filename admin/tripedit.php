@@ -25,6 +25,9 @@ if (isset($_POST['update_trip'])) {
     $stars = intval($_POST['stars']);
     $description = mysqli_real_escape_string($con, $_POST['description']);
     $agent_id = intval($_POST['user_id']);
+    $vehicle_name = mysqli_real_escape_string($con, $_POST['vehicle_name']);
+    $is_ac = isset($_POST['is_ac']) ? 1 : 0;
+    $departure_time = $_POST['departure_time'];
 
     // Handle Image Update
     $image_sql = "";
@@ -39,11 +42,12 @@ if (isset($_POST['update_trip'])) {
     $sql = "UPDATE trips SET 
             trip_name = ?, destination = ?, travel_type = ?, budget = ?, 
             starts_date = ?, end_date = ?, duration_days = ?, 
-            seats_available = ?, stars = ?, description = ?, user_id = ? 
+            seats_available = ?, stars = ?, description = ?, user_id = ?,
+            vehicle_name = ?, is_ac = ?, departure_time = ?
             $image_sql WHERE trip_id = ?";
     
     $stmt = $con->prepare($sql);
-    $stmt->bind_param('sssissiiisii', $trip_name, $destination, $travel_type, $budget, $starts_date, $end_date, $duration_days, $seats_available, $stars, $description, $agent_id, $trip_id);
+    $stmt->bind_param('sssissiiissis si', $trip_name, $destination, $travel_type, $budget, $starts_date, $end_date, $duration_days, $seats_available, $stars, $description, $agent_id, $vehicle_name, $is_ac, $departure_time, $trip_id);
     
     if ($stmt->execute()) {
         $success = "Trip details updated successfully!";
@@ -128,9 +132,27 @@ if(!$trip) { header("Location: tripview.php"); exit(); }
                                         </select>
                                     </div>
                                 </div>
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label">Description (Itinerary)</label>
                                     <textarea name="description" class="form-control" rows="5"><?php echo htmlspecialchars($trip['description']); ?></textarea>
+                                </div>
+
+                                <h5 class="section-title mb-4">Chatbot Intelligence (Vehicle Metadata)</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-7 mb-3">
+                                        <label class="form-label">Vehicle Name</label>
+                                        <input type="text" name="vehicle_name" class="form-control" value="<?php echo htmlspecialchars($trip['vehicle_name']); ?>">
+                                    </div>
+                                    <div class="col-md-5 mb-3">
+                                        <label class="form-label">Departure Time</label>
+                                        <input type="time" name="departure_time" class="form-control" value="<?php echo substr($trip['departure_time'], 0, 5); ?>">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch p-3 bg-light rounded-3 border">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" name="is_ac" id="isAc" <?php echo $trip['is_ac'] ? 'checked' : ''; ?>>
+                                        <label class="form-check-label fw-bold" for="isAc">Air Conditioned (AC) Available</label>
+                                    </div>
                                 </div>
                             </div>
 

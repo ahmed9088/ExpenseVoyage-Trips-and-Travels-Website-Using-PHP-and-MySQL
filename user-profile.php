@@ -1,6 +1,7 @@
 <?php
-include 'chatbot-loader.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 include 'admin/config.php';
 include 'csrf.php';
 
@@ -11,7 +12,7 @@ if (!isset($_SESSION['userid'])) {
 
 $userid = $_SESSION['userid'];
 
-// Fetch user data early for both POST and GET logic
+// Fetch user data
 $sql_fetch = "SELECT * FROM users WHERE id = ?";
 $stmt_fetch = mysqli_prepare($con, $sql_fetch);
 mysqli_stmt_bind_param($stmt_fetch, "i", $userid);
@@ -41,7 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
         $filetype = pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION);
         $new_filename = uniqid() . '.' . $filetype;
-        if (move_uploaded_file($_FILES['profile_image']['tmp_name'], 'img/profiles/' . $new_filename)) {
+        $targetDir = 'img/profiles/';
+        if (!file_exists($targetDir)) mkdir($targetDir, 0755, true);
+        if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $targetDir . $new_filename)) {
             $profile_image = $new_filename;
         }
     }
@@ -54,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt = mysqli_prepare($con, $sql_update);
                 mysqli_stmt_bind_param($stmt, 'sssssi', $first_name, $last_name, $email, $hashed_password, $profile_image, $userid);
             } else {
-                $error = "Current password incorrect.";
+                $error = "Incorrect current password.";
             }
         } else {
             $sql_update = "UPDATE users SET first_name = ?, last_name = ?, email = ?, profile_image = ? WHERE id = ?";
@@ -64,305 +67,193 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         if (isset($stmt) && mysqli_stmt_execute($stmt)) {
             $_SESSION['name'] = $first_name . ' ' . $last_name;
-            $success = "Profile updated.";
             header("Location: user-profile.php?success=1");
             exit();
         }
     }
 }
+
+$pageTitle = "My Profile | ExpenseVoyage";
+$currentPage = "profile";
+include 'header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>My Account | ExpenseVoyage</title>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
-    
-    <link href="css/custom.css" rel="stylesheet">
-    
-    <style>
-        .profile-hero {
-            height: 30vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(rgba(248, 250, 252, 0.8), rgba(248, 250, 252, 0.9)), 
-                        url('img/profile-bg.jpg') center/cover no-repeat;
-        }
-
-        .avatar-wrap {
-            position: relative;
-            width: 150px;
-            height: 150px;
-            margin: -75px auto 20px;
-        }
-
-        .avatar-main {
-            width: 150px;
-            height: 150px;
-            object-fit: cover;
-            border-radius: 50%;
-            border: 4px solid var(--primary);
-            padding: 5px;
-            background: #fff;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .cam-btn {
-            position: absolute;
-            bottom: 5px;
-            right: 5px;
-            background: var(--primary);
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            border: 2px solid #fff;
-            transition: all 0.3s ease;
-        }
-        
-        .cam-btn:hover {
-            background: #4338ca;
-            transform: scale(1.1);
-        }
-        
-        .mt-n5 { margin-top: -3rem !important; }
-    </style>
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg sticky-top py-3">
-        <div class="container">
-            <a href="index.php" class="navbar-brand">
-                <span class="text-primary fw-bold">Expense</span><span class="text-dark">Voyage</span>
-            </a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link px-3" href="index.php">Return to Home</a>
-            </div>
+    <!-- Simple Hero -->
+    <header class="hero-editorial" style="height: 40vh;">
+        <div class="hero-editorial-bg ken-burns" style="background-image: url('img/mountain.jpg');"></div>
+        <div class="container hero-editorial-content reveal-up">
+            <span class="text-gold text-uppercase tracking-widest fw-bold mb-4 d-block">User Dashboard</span>
+            <h1 class="display-1 serif-font text-white mb-0">My <span class="text-gold">Profile</span></h1>
         </div>
-    </nav>
+    </header>
 
-    <header class="profile-hero"></header>
-
-    <section class="pb-5">
-        <div class="container">
-            <div class="glass-panel p-5 mt-n5 position-relative bg-white shadow-lg border-0 animate__animated animate__fadeIn">
-                <div class="avatar-wrap">
-                    <img src="<?php echo $user['profile_image'] ? 'img/profiles/'.$user['profile_image'] : 'img/default.jpg'; ?>" class="avatar-main" alt="Avatar">
-                    <label for="profile_image" class="cam-btn"><i class="fas fa-camera"></i></label>
-                </div>
-
-                <div class="text-center mb-5">
-                    <h2 class="serif-font mb-0"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></h2>
-                    <p class="text-primary small tracking-widest text-uppercase fw-bold"><?php echo $user['is_verified'] ? 'Verified Voyager' : 'New Client'; ?></p>
-                </div>
-
-                <?php if (isset($_GET['success'])): ?>
-                    <div class="alert alert-success border-0 bg-success-subtle text-success text-center mb-4">
-                        Profile credentials synchronized successfully.
-                    </div>
-                <?php endif; ?>
-
-                <form action="user-profile.php" method="POST" enctype="multipart/form-data">
-                    <?php echo csrf_input(); ?>
-                    <input type="file" name="profile_image" id="profile_image" class="d-none">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <label class="small text-muted mb-2">First Name</label>
-                            <input type="text" name="first_name" value="<?php echo htmlspecialchars($user['first_name']); ?>" class="form-control bg-light border-0 py-3">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="small text-muted mb-2">Last Name</label>
-                            <input type="text" name="last_name" value="<?php echo htmlspecialchars($user['last_name']); ?>" class="form-control bg-light border-0 py-3">
-                        </div>
-                        <div class="col-12">
-                            <label class="small text-muted mb-2">Email Address</label>
-                            <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control bg-light border-0 py-3">
-                        </div>
-                        
-                        <div class="col-12 mt-5">
-                            <h5 class="serif-font mb-3">Security & Recovery</h5>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="small text-muted mb-2">New Password (leave blank to keep current)</label>
-                                    <input type="password" name="password" class="form-control bg-light border-0 py-3">
+    <!-- Profile Content -->
+    <section class="section-padding bg-deep">
+        <div class="container mt-n10 position-relative z-3">
+            <div class="row g-5">
+                <!-- Profile Settings -->
+                <div class="col-lg-4">
+                    <div class="glass-card p-5 border-0 shadow-extreme reveal-up" style="background: rgba(10, 10, 11, 0.95);">
+                        <form action="user-profile.php" method="POST" enctype="multipart/form-data">
+                            <?php echo csrf_input(); ?>
+                            <div class="text-center mb-5">
+                                <div class="position-relative d-inline-block">
+                                    <img src="<?php echo $user['profile_image'] ? 'img/profiles/'.$user['profile_image'] : 'img/default.jpg'; ?>" 
+                                         class="rounded-pill border border-gold p-2 shadow-gold" 
+                                         style="width: 180px; height: 180px; object-fit: cover;" alt="Avatar">
+                                    <label for="profile_image" class="position-absolute bottom-0 end-0 bg-gold text-secondary rounded-pill p-2 cursor-pointer shadow-lg" style="width: 45px; height: 45px;">
+                                        <i class="fas fa-camera"></i>
+                                    </label>
+                                    <input type="file" name="profile_image" id="profile_image" class="d-none">
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="small text-muted mb-2">Current Password (required for changes)</label>
-                                    <input type="password" name="old_password" class="form-control bg-light border-0 py-3">
-                                </div>
+                                <h3 class="serif-font text-white mt-4 mb-1"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></h3>
+                                <p class="text-gold text-uppercase tracking-widest small fw-bold">Member Account</p>
                             </div>
-                        </div>
-                        
-                        <div class="col-12 text-center mt-5">
-                            <button type="submit" class="btn btn-primary px-5 py-3">UPDATE ACCOUNT</button>
-                        </div>
-                    </div>
-                </form>
 
-                <!-- Notification Hub -->
-                <div class="glass-panel p-5 mt-5 bg-white shadow-lg border-0 animate__animated animate__fadeIn">
-                    <h3 class="serif-font mb-4 d-flex justify-content-between align-items-center">
-                        Expedition Alerts
-                        <span class="badge bg-primary rounded-pill small" style="font-size: 0.8rem;">LIVE</span>
-                    </h3>
-                    <div class="notification-list">
-                        <?php
-                        $nSql = "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5";
-                        $nStmt = mysqli_prepare($con, $nSql);
-                        mysqli_stmt_bind_param($nStmt, "i", $userid);
-                        mysqli_stmt_execute($nStmt);
-                        $nRes = mysqli_stmt_get_result($nStmt);
-                        
-                        if (mysqli_num_rows($nRes) > 0):
-                            while ($note = mysqli_fetch_assoc($nRes)):
-                        ?>
-                            <div class="notification-item p-3 border-bottom mb-2 <?php echo $note['is_read'] ? 'opacity-75' : 'bg-light border-start border-4 border-primary'; ?>">
-                                <div class="d-flex justify-content-between">
-                                    <h6 class="fw-bold mb-1"><?php echo htmlspecialchars($note['title']); ?></h6>
-                                    <small class="text-muted"><?php echo date('M d, H:i', strtotime($note['created_at'])); ?></small>
-                                </div>
-                                <p class="small text-muted mb-0"><?php echo htmlspecialchars($note['message']); ?></p>
-                            </div>
-                        <?php 
-                            endwhile;
-                        else:
-                        ?>
-                            <div class="text-center py-4 text-muted">
-                                <i class="fas fa-bell-slash fa-2x mb-2 opacity-25"></i>
-                                <p class="small mb-0">No active alerts for your expeditions.</p>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <div class="glass-panel p-5 mt-5 bg-white shadow-lg border-0 animate__animated animate__fadeIn">
-                    <h3 class="serif-font mb-4">My Expeditions</h3>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Voyage</th>
-                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Travel Date</th>
-                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Guests</th>
-                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Total</th>
-                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted">Expedition Status</th>
-                                <th class="py-3 border-0 small text-uppercase tracking-widest text-muted text-end">Verification</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            $bSql = "SELECT b.*, t.trip_name, t.trip_image FROM bookings b JOIN trips t ON b.trip_id = t.trip_id WHERE b.user_id = ? ORDER BY b.booking_date DESC";
-                            $bStmt = mysqli_prepare($con, $bSql);
-                            mysqli_stmt_bind_param($bStmt, "i", $userid);
-                            mysqli_stmt_execute($bStmt);
-                            $bRes = mysqli_stmt_get_result($bStmt);
-                            
-                            if (mysqli_num_rows($bRes) > 0):
-                                while ($booking = mysqli_fetch_assoc($bRes)):
-                                    $status_class = [
-                                        'scheduled' => 'bg-info-subtle text-info',
-                                        'departed' => 'bg-primary-subtle text-primary',
-                                        'arrived' => 'bg-success-subtle text-success',
-                                        'completed' => 'bg-dark-subtle text-dark',
-                                        'cancelled' => 'bg-danger-subtle text-danger'
-                                    ][$booking['expedition_status'] ?? 'scheduled'] ?? 'bg-light text-muted';
-                            ?>
-                                <tr>
-                                    <td class="py-4">
-                                        <div class="d-flex align-items-center">
-                                            <img src="<?php echo htmlspecialchars($booking['trip_image']); ?>" class="rounded-2 me-3" style="width: 60px; height: 40px; object-fit: cover;">
-                                            <span class="fw-bold"><?php echo htmlspecialchars($booking['trip_name']); ?></span>
-                                        </div>
-                                    </td>
-                                    <td><?php echo date('M d, Y', strtotime($booking['travel_date'])); ?></td>
-                                    <td><?php echo $booking['guests']; ?></td>
-                                    <td><span class="text-primary fw-bold">$<?php echo number_format($booking['total_price']); ?></span></td>
-                                    <td>
-                                        <span class="badge rounded-pill <?php echo $status_class; ?> px-3 py-2 text-uppercase" style="font-size: 0.7rem;">
-                                            <?php echo htmlspecialchars($booking['expedition_status'] ?? 'Scheduled'); ?>
-                                        </span>
-                                    </td>
-                                    <td class="text-end">
-                                        <button class="btn btn-sm btn-light border" title="Verify Ticket" onclick="alert('Digital Identity Hash: <?php echo $booking['ticket_hash']; ?>')">
-                                            <i class="fas fa-fingerprint"></i> VERIFY
-                                        </button>
-                                    </td>
-                                </tr>
-                            <?php 
-                                endwhile;
-                            else:
-                            ?>
-                                <tr>
-                                    <td colspan="5" class="py-5 text-center text-muted">
-                                        <i class="fas fa-compass fa-3x mb-3 opacity-25"></i>
-                                        <p class="mb-0">No expeditions booked yet. The world is waiting for you.</p>
-                                        <a href="package.php" class="btn btn-link text-primary mt-2">Explore Destinations</a>
-                                    </td>
-                                </tr>
+                            <?php if (isset($_GET['success'])): ?>
+                                <div class="bg-success text-white p-3 text-center small mb-4">Profile updated successfully!</div>
                             <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="glass-panel p-5 mt-5 bg-white shadow-lg border-0 animate__animated animate__fadeIn">
-                <h3 class="serif-font mb-4">Saved Voyages</h3>
-                <div class="row g-4">
-                    <?php
-                    $wSql = "SELECT t.* FROM wishlist w JOIN trips t ON w.trip_id = t.trip_id WHERE w.user_id = ?";
-                    $wStmt = mysqli_prepare($con, $wSql);
-                    mysqli_stmt_bind_param($wStmt, "i", $userid);
-                    mysqli_stmt_execute($wStmt);
-                    $wRes = mysqli_stmt_get_result($wStmt);
-                    
-                    if (mysqli_num_rows($wRes) > 0):
-                        while ($wTrip = mysqli_fetch_assoc($wRes)):
-                    ?>
-                        <div class="col-md-4">
-                            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
-                                <img src="<?php echo htmlspecialchars($wTrip['trip_image']); ?>" class="card-img-top" style="height: 150px; object-fit: cover;">
-                                <div class="p-3">
-                                    <h6 class="serif-font mb-1"><?php echo htmlspecialchars($wTrip['trip_name']); ?></h6>
-                                    <p class="text-primary small fw-bold mb-3">$<?php echo number_format($wTrip['budget']); ?></p>
-                                    <a href="trip_details.php?id=<?php echo $wTrip['trip_id']; ?>" class="btn btn-outline-primary btn-sm w-100">Explore</a>
-                                </div>
+                            <?php if (isset($error)): ?>
+                                <div class="bg-danger text-white p-3 text-center small mb-4"><?php echo $error; ?></div>
+                            <?php endif; ?>
+
+                            <div class="mb-4">
+                                <label class="small text-gold text-uppercase tracking-widest fw-bold mb-2 d-block">First Name</label>
+                                <input type="text" name="first_name" value="<?php echo htmlspecialchars($user['first_name']); ?>" class="form-control bg-transparent border-0 border-bottom border-ghost py-2 text-white shadow-none" placeholder="First Name">
                             </div>
+                            <div class="mb-4">
+                                <label class="small text-gold text-uppercase tracking-widest fw-bold mb-2 d-block">Last Name</label>
+                                <input type="text" name="last_name" value="<?php echo htmlspecialchars($user['last_name']); ?>" class="form-control bg-transparent border-0 border-bottom border-ghost py-2 text-white shadow-none" placeholder="Last Name">
+                            </div>
+                            <div class="mb-4">
+                                <label class="small text-gold text-uppercase tracking-widest fw-bold mb-2 d-block">Email Address</label>
+                                <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control bg-transparent border-0 border-bottom border-ghost py-2 text-white shadow-none" placeholder="Email Address">
+                            </div>
+                            <div class="mb-5">
+                                <label class="small text-gold text-uppercase tracking-widest fw-bold mb-2 d-block">New Password</label>
+                                <input type="password" name="password" placeholder="Leave blank to keep current" class="form-control bg-transparent border-0 border-bottom border-ghost py-2 text-white shadow-none">
+                            </div>
+                            <div class="mb-5">
+                                <label class="small text-gold text-uppercase tracking-widest fw-bold mb-2 d-block">Current Password</label>
+                                <input type="password" name="old_password" class="form-control bg-transparent border-0 border-bottom border-ghost py-2 text-white shadow-none" placeholder="Type current password to save">
+                            </div>
+
+                            <button type="submit" class="btn-luxe btn-luxe-gold w-100 py-3">Save Changes</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Dashboard Area -->
+                <div class="col-lg-8">
+                    <!-- Notifications -->
+                    <div class="glass-card p-5 mb-5 border-0 shadow-extreme reveal-up" style="background: rgba(10, 10, 11, 0.95);">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="serif-font text-white mb-0">Latest <span class="text-gold">Alerts</span></h4>
                         </div>
-                    <?php 
-                        endwhile;
-                    else:
-                    ?>
-                        <div class="col-12 py-4 text-center text-muted">
-                            <p class="small mb-0">Your collection is empty. Discover your next adventure on the <a href="index.php#packages">Packages</a> section.</p>
+                        <div class="alert-list">
+                            <?php
+                            $nSql = "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 3";
+                            $nStmt = mysqli_prepare($con, $nSql);
+                            mysqli_stmt_bind_param($nStmt, "i", $userid);
+                            mysqli_stmt_execute($nStmt);
+                            $nRes = mysqli_stmt_get_result($nStmt);
+                            if (mysqli_num_rows($nRes) > 0):
+                                while ($note = mysqli_fetch_assoc($nRes)):
+                            ?>
+                                <div class="p-4 mb-3 <?php echo $note['is_read'] ? 'border-ghost opacity-50' : 'border-gold bg-glass-light'; ?> border-start border-4">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <h6 class="text-white fw-bold mb-0"><?php echo htmlspecialchars($note['title']); ?></h6>
+                                        <small class="text-gold small"><?php echo date('M d, H:i', strtotime($note['created_at'])); ?></small>
+                                    </div>
+                                    <p class="text-muted small mb-0"><?php echo htmlspecialchars($note['message']); ?></p>
+                                </div>
+                            <?php endwhile; else: ?>
+                                <div class="text-center py-5 opacity-20"><i class="fas fa-bell-slash fa-3x mb-3"></i><p class="small">No notifications found.</p></div>
+                            <?php endif; ?>
                         </div>
-                    <?php endif; ?>
+                    </div>
+
+                    <!-- My Bookings -->
+                    <div class="glass-card p-5 mb-5 border-0 shadow-extreme reveal-up" style="background: rgba(10, 10, 11, 0.95);">
+                        <h4 class="serif-font text-white mb-5">My <span class="text-gold">Bookings</span></h4>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle custom-table-luxe">
+                                <thead>
+                                    <tr>
+                                        <th class="border-0 text-gold small text-uppercase tracking-widest">Trip</th>
+                                        <th class="border-0 text-gold small text-uppercase tracking-widest">Status</th>
+                                        <th class="border-0 text-gold small text-uppercase tracking-widest">Total</th>
+                                        <th class="border-0 text-gold small text-uppercase tracking-widest text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $bSql = "SELECT b.*, t.trip_name, t.trip_image FROM bookings b JOIN trips t ON b.trip_id = t.trip_id WHERE b.user_id = ? ORDER BY b.booking_date DESC LIMIT 5";
+                                    $bStmt = mysqli_prepare($con, $bSql);
+                                    mysqli_stmt_bind_param($bStmt, "i", $userid);
+                                    mysqli_stmt_execute($bStmt);
+                                    $bRes = mysqli_stmt_get_result($bStmt);
+                                    if (mysqli_num_rows($bRes) > 0):
+                                        while ($booking = mysqli_fetch_assoc($bRes)):
+                                    ?>
+                                        <tr>
+                                            <td class="py-4">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="<?php echo htmlspecialchars($booking['trip_image']); ?>" class="rounded-0 me-3 border border-ghost" style="width: 50px; height: 35px; object-fit: cover;">
+                                                    <span class="text-white fw-bold"><?php echo htmlspecialchars($booking['trip_name']); ?></span>
+                                                </div>
+                                            </td>
+                                            <td class="text-ghost small"><?php echo htmlspecialchars($booking['expedition_status'] ?? 'Upcoming'); ?></td>
+                                            <td class="text-gold fw-bold">$<?php echo number_format($booking['total_price']); ?></td>
+                                            <td class="text-end">
+                                                <button class="btn btn-outline-gold btn-sm py-1 px-3 x-small" onclick="alert('Ticket ID: <?php echo $booking['ticket_hash']; ?>')">VIEW</button>
+                                            </td>
+                                        </tr>
+                                    <?php endwhile; else: ?>
+                                        <tr><td colspan="4" class="text-center py-5 opacity-20">No bookings found.</td></tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Wishlist -->
+                    <div class="glass-card p-5 border-0 shadow-extreme reveal-up" style="background: rgba(10, 10, 11, 0.95);">
+                        <h4 class="serif-font text-white mb-5">Saved <span class="text-gold">Trips</span></h4>
+                        <div class="row g-4">
+                            <?php
+                            $wSql = "SELECT t.* FROM wishlist w JOIN trips t ON w.trip_id = t.trip_id WHERE w.user_id = ? LIMIT 3";
+                            $wStmt = mysqli_prepare($con, $wSql);
+                            mysqli_stmt_bind_param($wStmt, "i", $userid);
+                            mysqli_stmt_execute($wStmt);
+                            $wRes = mysqli_stmt_get_result($wStmt);
+                            if (mysqli_num_rows($wRes) > 0):
+                                while ($wTrip = mysqli_fetch_assoc($wRes)):
+                            ?>
+                                <div class="col-md-4">
+                                    <div class="bg-surface border border-ghost p-3 h-100 transition-all hover-border-gold">
+                                        <img src="<?php echo htmlspecialchars($wTrip['trip_image']); ?>" class="w-100 mb-3" style="height: 100px; object-fit: cover; filter: brightness(0.8);">
+                                        <h6 class="serif-font text-white mb-1 small"><?php echo htmlspecialchars($wTrip['trip_name']); ?></h6>
+                                        <p class="text-gold x-small fw-bold mb-3">$<?php echo number_format($wTrip['budget']); ?></p>
+                                        <a href="trip_details.php?id=<?php echo $wTrip['trip_id']; ?>" class="btn-luxe btn-luxe-outline py-1 w-100 x-small">Details</a>
+                                    </div>
+                                </div>
+                            <?php endwhile; else: ?>
+                                <div class="col-12 py-4 text-center opacity-20">No saved trips yet.</div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <footer class="py-5 border-top bg-white mt-5">
-        <div class="container text-center">
-            <h4 class="text-primary mb-3">ExpenseVoyage</h4>
-            <p class="text-muted small mb-0">&copy; 2026 ExpenseVoyage. Crafted for the extraordinary.</p>
-        </div>
-    </footer>
+<?php include 'footer.php'; ?>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/custom.js"></script>
-</body>
-</html>
+<style>
+    .custom-table-luxe th, .custom-table-luxe td { background: transparent !important; color: #94a3b8 !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important; vertical-align: middle; }
+    .custom-table-luxe tbody tr:hover td { background: rgba(255,255,255,0.02) !important; color: #fff !important; }
+    .btn-outline-gold { border: 1px solid var(--accent); color: var(--accent); background: transparent; transition: all 0.3s ease; }
+    .btn-outline-gold:hover { background: var(--accent); color: #000; }
+    .bg-glass-light { background: rgba(212, 175, 55, 0.05) !important; }
+</style>

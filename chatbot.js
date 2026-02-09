@@ -1,6 +1,6 @@
 // chatbot.js - Fixed & Professional
-document.addEventListener('DOMContentLoaded', function() {
-    
+document.addEventListener('DOMContentLoaded', function () {
+
     const chatbotToggle = document.getElementById('chatbot-toggle');
     const chatbotContainer = document.getElementById('chatbot-container');
     const chatbotClose = document.getElementById('chatbot-close');
@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatbotSend = document.getElementById('chatbot-send');
     const chatbotForm = document.getElementById('chatbot-form');
     const quickQuestions = document.getElementById('chatbot-quick-questions');
-    
+
     // 1. Toggle Chat Window
     if (chatbotToggle) {
         chatbotToggle.addEventListener('click', () => {
@@ -40,13 +40,13 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'get_suggestions=1'
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.suggestions) {
-                renderSuggestions(data.suggestions);
-            }
-        })
-        .catch(error => console.error('Error:', error));
+            .then(response => response.json())
+            .then(data => {
+                if (data.suggestions) {
+                    renderSuggestions(data.suggestions);
+                }
+            })
+            .catch(error => console.error('Error:', error));
     }
 
     function renderSuggestions(suggestions) {
@@ -79,30 +79,36 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'message=' + encodeURIComponent(msg)
         })
-        .then(response => response.json())
-        .then(data => {
-            removeTyping(typingId);
-            addMessage(data.response, 'bot');
-            if (data.suggestions) {
-                renderSuggestions(data.suggestions);
-            }
-        })
-        .catch(error => {
-            removeTyping(typingId);
-            addMessage("Sorry, I'm having trouble connecting right now.", 'bot');
-        });
+            .then(response => response.json())
+            .then(data => {
+                removeTyping(typingId);
+                addMessage(data.response, 'bot');
+                if (data.suggestions) {
+                    renderSuggestions(data.suggestions);
+                }
+            })
+            .catch(error => {
+                removeTyping(typingId);
+                addMessage("Sorry, I'm having trouble connecting right now.", 'bot');
+            });
     }
 
     // 5. UI Helper Functions
     function addMessage(text, sender) {
         const div = document.createElement('div');
         div.className = `chat-message ${sender}`;
-        
-        // Format bold text (**text**) to <strong>
-        const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-        
+
+        // Advanced Formatting
+        let formattedText = text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+            .replace(/\n/g, '<br>') // Newlines
+            .replace(/🔹/g, '<span class="bullet">🔹</span>') // Bullets
+            .replace(/📍/g, '<span class="icon">📍</span>')
+            .replace(/💰/g, '<span class="icon">💰</span>')
+            .replace(/⏰/g, '<span class="icon">⏰</span>');
+
         const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
+
         div.innerHTML = `
             <div class="message-content">
                 ${formattedText}

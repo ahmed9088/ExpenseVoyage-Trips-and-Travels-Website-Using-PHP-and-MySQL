@@ -25,6 +25,9 @@ if (isset($_POST['add_trip'])) {
     $stars = intval($_POST['stars']);
     $description = mysqli_real_escape_string($con, $_POST['description']);
     $user_id = intval($_POST['user_id']); // Assigned Agent
+    $vehicle_name = mysqli_real_escape_string($con, $_POST['vehicle_name']);
+    $is_ac = isset($_POST['is_ac']) ? 1 : 0;
+    $departure_time = $_POST['departure_time'];
 
     // Handle Image
     $trip_image = "";
@@ -36,11 +39,11 @@ if (isset($_POST['add_trip'])) {
         }
     }
 
-    $sql = "INSERT INTO trips (trip_name, destination, travel_type, budget, starts_date, end_date, duration_days, seats_available, stars, description, trip_image, user_id, booked_seats) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)";
+    $sql = "INSERT INTO trips (trip_name, destination, travel_type, budget, starts_date, end_date, duration_days, seats_available, stars, description, trip_image, user_id, vehicle_name, is_ac, departure_time, booked_seats) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)";
     
     $stmt = $con->prepare($sql);
-    $stmt->bind_param('sssissiiiss i', $trip_name, $destination, $travel_type, $budget, $starts_date, $end_date, $duration_days, $seats_available, $stars, $description, $trip_image, $user_id);
+    $stmt->bind_param('sssissiiissis s', $trip_name, $destination, $travel_type, $budget, $starts_date, $end_date, $duration_days, $seats_available, $stars, $description, $trip_image, $user_id, $vehicle_name, $is_ac, $departure_time);
     
     if ($stmt->execute()) {
         $success = "Trip Added Successfully!";
@@ -117,9 +120,27 @@ if (isset($_POST['add_trip'])) {
                                         </select>
                                     </div>
                                 </div>
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label">Description (Itinerary)</label>
                                     <textarea name="description" class="form-control" rows="5" placeholder="Full itinerary and details..."></textarea>
+                                </div>
+
+                                <h5 class="section-title mb-4">Chatbot Intelligence (Vehicle Metadata)</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-7 mb-3">
+                                        <label class="form-label">Vehicle Name</label>
+                                        <input type="text" name="vehicle_name" class="form-control" placeholder="e.g. Toyota Hiace Grand" value="Standard Bus">
+                                    </div>
+                                    <div class="col-md-5 mb-3">
+                                        <label class="form-label">Departure Time</label>
+                                        <input type="time" name="departure_time" class="form-control" value="08:00">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch p-3 bg-light rounded-3 border">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" name="is_ac" id="isAc" checked>
+                                        <label class="form-check-label fw-bold" for="isAc">Air Conditioned (AC) Available</label>
+                                    </div>
                                 </div>
                             </div>
 

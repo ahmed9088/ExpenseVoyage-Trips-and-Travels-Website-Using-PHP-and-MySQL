@@ -79,6 +79,10 @@ if(!isset($_SESSION['auser']))
             <i class="fa-solid fa-clipboard-list"></i>
             <span>Activity Logs</span>
         </a>
+        <a href="chatbot_knowledge.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'chatbot_knowledge.php' ? 'active' : ''; ?>">
+            <i class="fa-solid fa-microchip"></i>
+            <span>Chatbot Intelligence</span>
+        </a>
     </nav>
 
     <div class="sidebar-footer">
