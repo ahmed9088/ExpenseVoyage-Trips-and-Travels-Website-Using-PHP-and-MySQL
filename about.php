@@ -19,13 +19,12 @@ include 'header.php';
     </header>
 
     <!-- Main Content -->
-    <section class="section-padding bg-deep">
+    <section class="section-padding bg-deep glow-aura">
         <div class="container">
             <div class="row align-items-center mb-5 g-5">
                 <div class="col-lg-6 reveal-up">
-                    <div class="position-relative">
-                        <img src="img/about-1.jpg" class="img-fluid shadow-extreme rounded-0" alt="About Side">
-                        <div class="position-absolute border border-gold" style="inset: -20px; z-index: -1;"></div>
+                    <div class="position-relative rough-edges">
+                        <img src="img/about-1.jpg" class="img-fluid shadow-extreme rounded-4" alt="About Side">
                     </div>
                 </div>
                 <div class="col-lg-6 ps-lg-5 reveal-up">
@@ -47,9 +46,9 @@ include 'header.php';
             </div>
             
             <div class="row g-5">
+                <?php
                 $agent_query = "SELECT * FROM agent ORDER BY id DESC LIMIT 3";
                 $agent_result = mysqli_query($con, $agent_query);
-                <?php
                 if ($agent_result && mysqli_num_rows($agent_result) > 0):
                     while ($agent = mysqli_fetch_assoc($agent_result)):
                 ?>
@@ -78,7 +77,7 @@ include 'header.php';
         <div class="container">
             <div class="row g-5 justify-content-center">
                 <div class="col-lg-8">
-                    <div class="glass-card p-5 border-0 shadow-extreme reveal-up" style="background: rgba(10, 10, 11, 0.95);">
+                    <div class="glass-card p-5 border-0 shadow-extreme reveal-up">
                         <div class="text-center mb-5">
                             <h6 class="text-gold text-uppercase tracking-widest fw-bold mb-3 small">Share Your Story</h6>
                             <h2 class="display-5 serif-font text-white mb-4">Send Us a <span class="text-gold">Review</span></h2>

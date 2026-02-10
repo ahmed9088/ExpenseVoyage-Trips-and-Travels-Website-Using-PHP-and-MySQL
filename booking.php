@@ -42,7 +42,7 @@ include 'header.php';
         </div>
     </header>
 
-    <section class="py-5 bg-deep">
+    <section class="py-5 bg-deep glow-aura">
         <div class="container">
             <div class="row g-5">
                 <!-- Trip Summary Sidebar -->
@@ -50,7 +50,9 @@ include 'header.php';
                     <div class="glass-card p-4 sticky-top border-ghost shadow-soft" style="top: 120px;">
                         <h3 class="serif-font text-white mb-4">Trip Summary</h3>
                         <div class="mb-4">
-                            <img src="<?php echo htmlspecialchars($trip['trip_image']); ?>" class="img-fluid mb-3 rounded-2" alt="Trip">
+                            <div class="rough-edges">
+                                <img src="<?php echo htmlspecialchars($trip['trip_image']); ?>" class="img-fluid mb-3 rounded-2" alt="Trip">
+                            </div>
                             <h4 class="h5 text-white"><?php echo htmlspecialchars($trip['trip_name']); ?></h4>
                             <p class="text-muted small mb-0"><i class="fas fa-map-marker-alt text-gold me-2"></i><?php echo htmlspecialchars($trip['destination']); ?></p>
                         </div>
@@ -74,7 +76,7 @@ include 'header.php';
 
                 <!-- Booking Form -->
                 <div class="col-lg-8 order-lg-1">
-                    <div class="glass-card p-5 border-0 shadow-extreme reveal-up" style="background: rgba(10, 10, 11, 0.95);">
+                    <div class="glass-card p-5 border-0 shadow-extreme reveal-up">
                         <h2 class="serif-font text-white mb-5">Your Information</h2>
                         
                         <form action="payment.php" method="GET" class="booking-form">

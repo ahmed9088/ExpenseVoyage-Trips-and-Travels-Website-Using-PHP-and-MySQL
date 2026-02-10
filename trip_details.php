@@ -38,7 +38,7 @@ include 'header.php';
     </header>
 
     <!-- Trip Info -->
-    <section class="section-padding bg-deep">
+    <section class="section-padding bg-deep glow-aura">
         <div class="container mt-n5 position-relative z-2">
             <div class="row g-5">
                 <div class="col-lg-8">
@@ -76,7 +76,7 @@ include 'header.php';
                         </div>
 
                         <?php if (isset($trip['vehicle_type'])): ?>
-                            <div class="p-4 glass-card border-ghost d-flex flex-column flex-md-row align-items-center mb-0 gap-4">
+                            <div class="p-4 glass-card border-ghost d-flex flex-column flex-md-row align-items-center mb-0 gap-4 rough-edges">
                                 <img src="img/about.jpg" class="rounded-3 shadow-gold" style="width: 150px; height: 100px; object-fit: cover;" alt="Car">
                                 <div>
                                     <h5 class="mb-2 text-gold serif-font">Travel Method: <?php echo htmlspecialchars($trip['vehicle_type']); ?></h5>
@@ -126,7 +126,7 @@ include 'header.php';
     </section>
 
     <!-- Itinerary List -->
-    <section class="section-padding bg-deep border-top border-subtle">
+    <section class="section-padding bg-deep border-top border-subtle glow-aura">
         <div class="container">
             <div class="text-center mb-5 reveal-up">
                 <h6 class="text-gold text-uppercase tracking-widest fw-bold mb-3">Daily Plan</h6>

@@ -20,7 +20,7 @@ include 'header.php';
     </header>
 
     <!-- Main Content -->
-    <section class="section-padding bg-deep">
+    <section class="section-padding bg-deep glow-aura">
         <div class="container mt-n5 position-relative z-2">
             <div class="row g-5">
                 <!-- Contact Info -->
@@ -44,9 +44,8 @@ include 'header.php';
                     </div>
                 </div>
 
-                <!-- Contact Form -->
                 <div class="col-lg-8">
-                    <div class="glass-card p-5 h-100 border-0 shadow-extreme reveal-up" style="background: rgba(10, 10, 11, 0.95);">
+                    <div class="glass-card p-5 h-100 border-0 shadow-extreme reveal-up">
                         <div class="mb-5">
                             <h6 class="text-gold text-uppercase tracking-widest fw-bold mb-3 small">Send a Message</h6>
                             <h2 class="display-5 serif-font text-white mb-4">How can we <span class="text-gold">help?</span></h2>

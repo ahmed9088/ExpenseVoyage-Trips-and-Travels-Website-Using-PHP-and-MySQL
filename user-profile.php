@@ -88,12 +88,12 @@ include 'header.php';
     </header>
 
     <!-- Profile Content -->
-    <section class="section-padding bg-deep">
+    <section class="section-padding bg-deep glow-aura">
         <div class="container mt-n10 position-relative z-3">
             <div class="row g-5">
                 <!-- Profile Settings -->
                 <div class="col-lg-4">
-                    <div class="glass-card p-5 border-0 shadow-extreme reveal-up" style="background: rgba(10, 10, 11, 0.95);">
+                    <div class="glass-card p-5 border-0 shadow-extreme reveal-up">
                         <form action="user-profile.php" method="POST" enctype="multipart/form-data">
                             <?php echo csrf_input(); ?>
                             <div class="text-center mb-5">

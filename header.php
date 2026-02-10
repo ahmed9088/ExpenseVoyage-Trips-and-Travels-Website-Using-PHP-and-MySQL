@@ -40,12 +40,12 @@ if (!$con) {
                 
                 <div class="ms-auto d-flex align-items-center">
                     <!-- Theme Toggle -->
-                    <button id="theme-toggle" class="btn text-white me-3 fs-5 p-0" title="Switch Light/Dark Mode">
+                    <button id="theme-toggle" class="btn text-gold me-3 fs-5 p-0" title="Switch Light/Dark Mode">
                         <i class="fas fa-sun"></i>
                     </button>
 
                     <button class="navbar-toggler border-0 shadow-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
-                        <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
+                        <span class="navbar-toggler-icon"></span>
                     </button>
                 </div>
                 

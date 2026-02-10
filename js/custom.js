@@ -7,43 +7,41 @@ document.addEventListener('DOMContentLoaded', function () {
     // 1. Theme Controller (Dark/Light Mode)
     const themeToggle = document.getElementById('theme-toggle');
     const body = document.body;
-    const cursor = document.querySelector('.luxury-cursor');
 
-    // Custom Cursor Movement
-    document.addEventListener('mousemove', (e) => {
-        if (cursor) {
-            cursor.style.left = e.clientX + 'px';
-            cursor.style.top = e.clientY + 'px';
+    // Check saved preference or system preference
+    const getPreferredTheme = () => {
+        const saved = localStorage.getItem('theme');
+        if (saved) return saved;
+        return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    };
+
+    const setTheme = (theme) => {
+        if (theme === 'light') {
+            body.classList.add('light-mode');
+            if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+        } else {
+            body.classList.remove('light-mode');
+            if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
         }
-    });
+        localStorage.setItem('theme', theme);
+    };
 
-    // Cursor Hover Effects
-    document.querySelectorAll('a, button, .bento-item').forEach(el => {
-        el.addEventListener('mouseenter', () => cursor?.classList.add('cursor-hover'));
-        el.addEventListener('mouseleave', () => cursor?.classList.remove('cursor-hover'));
-    });
-
-    // Check saved preference
-    const currentTheme = localStorage.getItem('theme') || 'dark';
-    if (currentTheme === 'light') {
-        body.classList.add('light-mode');
-        if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-    }
+    // Initialize
+    setTheme(getPreferredTheme());
 
     if (themeToggle) {
-        console.log("Theme toggle found, initializing...");
         themeToggle.addEventListener('click', () => {
-            console.log("Switching theme...");
-            body.classList.toggle('light-mode');
-            const theme = body.classList.contains('light-mode') ? 'light' : 'dark';
-            localStorage.setItem('theme', theme);
-
-            // Update icon
-            themeToggle.innerHTML = theme === 'light' ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+            const isLight = body.classList.contains('light-mode');
+            setTheme(isLight ? 'dark' : 'light');
         });
-    } else {
-        console.error("Theme toggle button NOT found!");
     }
+
+    // System theme change listener
+    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', e => {
+        if (!localStorage.getItem('theme')) {
+            setTheme(e.matches ? 'light' : 'dark');
+        }
+    });
 
     // Scroll to Top Progress Logic
     const progressPath = document.querySelector('.progress-ring__circle');

@@ -28,30 +28,43 @@ $currentPage = "index";
 include 'header.php';
 ?>
 
-    <!-- Ultra-Luxe 3.0 Trending Hero -->
-    <section class="hero-section trending-hero" style="height: 100vh;">
+    <!-- Boutique "EV Studio" Hero -->
+    <section class="hero-section trending-hero glow-aura" style="min-height: 100vh; display: flex; align-items: center;">
         <div id="hero-bg" class="hero-bg ken-burns" style="background-image: url('img/carousel-1.jpg');"></div>
         <div class="hero-overlay"></div>
+        <div class="light-leak"></div>
         
-        <div class="container h-100 d-flex align-items-center">
-            <div class="row w-100">
-                <div class="col-lg-8">
-                    <div class="hero-content-trending reveal-up">
-                        <span class="trending-badge mb-4 d-inline-block">Volume 2026 • Expedition Elite</span>
-                        <h1 class="hero-title-main mb-4">The Art of <br> <span class="text-gold">Voyage</span></h1>
-                        <p class="hero-desc mb-5">Crafting hyper-exclusive travel experiences for the modern explorer. Redefining luxury through trending aesthetics and curated adventures.</p>
+        <div class="container position-relative z-3">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <div class="hero-content-asymmetric reveal-up">
+                        <div class="hero-stamp">Curated Collection № 042</div>
+                        <span class="trending-badge mb-4">Handcrafted Experience</span>
+                        <h1 class="hero-title-main mb-4" style="letter-spacing: -0.08em;">
+                            Beyond <br> 
+                            <span class="ink-underline text-gold">Design</span>
+                        </h1>
+                        <p class="hero-desc mb-5" style="max-width: 450px; font-weight: 300;">
+                            Traveling isn't about the destination; it's about the <span class="signature-text" style="color: var(--text-contrast);">texture</span> of memory. 
+                            We curate journeys that feel human, tactile, and unforgettable.
+                        </p>
                         
-                        <div class="hero-actions d-flex gap-4">
-                            <a href="package.php" class="btn-luxe btn-luxe-gold">Explore Collection</a>
-                            <a href="about.php" class="btn-luxe btn-luxe-outline">Our Story</a>
+                        <div class="hero-actions d-flex gap-5 align-items-center">
+                            <a href="package.php" class="btn-luxe btn-luxe-gold">Enter the Vault</a>
+                            <div class="d-flex flex-column">
+                                <span class="signature-text" style="font-size: 1.5rem; transform: rotate(-5deg);">A. Saffar</span>
+                                <span class="text-ghost tracking-widest small uppercase">Creative Lead</span>
+                            </div>
                         </div>
                     </div>
+                </div>
+                <div class="col-lg-5 d-none d-lg-block">
+                    <div class="boutique-label">ESTABLISHED • TWENTY TWENTY SIX</div>
                 </div>
             </div>
         </div>
         
-        <!-- Trending Decorative Elements -->
-        <div class="hero-decorative-text d-none d-lg-block">EXPENSEVOYAGE ©</div>
+        <div class="hero-decorative-text d-none d-lg-block">V O Y A G E</div>
     </section>
     <!-- Cinematic Marquee -->
     <div class="cinematic-marquee">
@@ -101,7 +114,7 @@ include 'header.php';
     </section>
 
     <!-- Bento Featured Collections -->
-    <section class="section-padding bg-deep">
+    <section class="section-padding bg-deep glow-aura">
         <div class="container">
             <div class="row align-items-end mb-5 reveal-up">
                 <div class="col-lg-6">
@@ -119,10 +132,13 @@ include 'header.php';
                     <div class="category-card h-100">
                         <div class="pulsar-badge">
                             <div class="pulsar-dot"></div>
-                            <span class="text-white small fw-bold" style="font-size: 0.6rem;"><?php echo rand(5, 15); ?> People Viewing</span>
+                            <span class="text-contrast small fw-bold" style="font-size: 0.6rem;"><?php echo rand(5, 15); ?> People Viewing</span>
                         </div>
-                        <img src="img/package-1.jpg" alt="Local">
+                        <div class="rough-edges h-100 w-100">
+                            <img src="img/package-1.jpg" alt="Local">
+                        </div>
                         <div class="category-content p-5">
+                            <div class="signature-text mb-2" style="font-size: 0.9rem;">Perfect for couples</div>
                             <span class="text-gold text-uppercase tracking-widest small mb-3 d-block">Elite Choices</span>
                             <h3 class="display-3 serif-font text-white mb-4">Local <br> Gems</h3>
                             <a href="package.php?type=local" class="btn-luxe btn-luxe-gold px-5">Explore</a>
@@ -135,6 +151,7 @@ include 'header.php';
                     <div class="category-card h-100">
                         <img src="img/package-2.jpg" alt="International">
                         <div class="category-content p-4">
+                            <div class="boutique-label" style="top: 2rem; right: 1rem;">COLLECTION VOL. 01</div>
                             <span class="text-gold text-uppercase tracking-widest small mb-2 d-block">Global</span>
                             <h3 class="display-6 serif-font text-white mb-3">Global <br> Reach</h3>
                             <a href="package.php?type=international" class="btn-luxe btn-luxe-outline x-small">Details</a>
@@ -147,6 +164,7 @@ include 'header.php';
                     <div class="category-card h-100">
                         <img src="img/about.jpg" alt="Experience">
                         <div class="category-content p-4">
+                            <div class="signature-text mb-2" style="font-size: 0.8rem; color: var(--text-contrast); opacity: 0.6;">Personally reviewed</div>
                             <h3 class="display-6 serif-font text-white mb-3">Crafted <br> Experiences</h3>
                             <p class="text-muted small mb-3">Bespoke travel for the refined spirit.</p>
                             <a href="about.php" class="text-gold text-uppercase tracking-widest small text-decoration-none fw-bold">Learn More →</a>
@@ -195,8 +213,9 @@ include 'header.php';
     <section class="section-padding bg-deep">
         <div class="container">
             <div class="text-center mb-5 reveal-up">
-                <h6 class="text-gold text-uppercase tracking-widest fw-bold mb-3 small">Concierge AI</h6>
-                <h2 class="display-4 serif-font text-white">Common <span class="text-gold">Questions</span></h2>
+                <div class="signature-text mb-2">Concierge Notes</div>
+                <h6 class="text-gold text-uppercase tracking-widest fw-bold mb-3 small">Boutique Support</h6>
+                <h2 class="display-4 serif-font text-white">Guest <span class="text-gold">Intelligence</span></h2>
             </div>
 
             <div class="row justify-content-center">
@@ -245,11 +264,12 @@ include 'header.php';
     </section>
 
     <!-- Testimonial Section -->
-    <section class="section-padding bg-deep position-relative">
+    <section class="section-padding bg-deep position-relative glow-aura">
         <div class="container reveal-up">
             <div class="glass-card testimonial-card overflow-hidden position-relative">
                 <div class="row align-items-center">
                     <div class="col-lg-7">
+                        <div class="boutique-label" style="top: 0; left: -3rem;">VERIFIED IMPRESSION</div>
                         <div class="fs-1 text-primary opacity-20 mb-4"><i class="fas fa-quote-left"></i></div>
                         <?php
                         $rev_res = mysqli_query($con, "SELECT * FROM review ORDER BY date_time DESC LIMIT 1");
@@ -275,7 +295,9 @@ include 'header.php';
                         <?php endif; ?>
                     </div>
                     <div class="col-lg-5 d-none d-lg-block">
-                        <img src="img/about.jpg" class="w-100 rounded-4 shadow-extreme" style="transform: rotate(2deg);" alt="Experience">
+                        <div class="rough-edges">
+                            <img src="img/about.jpg" class="w-100 rounded-4 shadow-extreme" style="transform: rotate(2deg);" alt="Experience">
+                        </div>
                     </div>
                 </div>
             </div>
